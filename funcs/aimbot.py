@@ -1,5 +1,3 @@
-import time
-
 from classes.Vector import Vector
 from math import *
 
@@ -20,6 +18,19 @@ clientstate_net_channel = 0x9C
 clientstate_last_outgoing_command = 0x4D2C
 dwClientState_MaxPlayer = 0x388
 
+
+def normalizeAngles(viewAngleX, viewAngleY):
+    if viewAngleX > 89:
+        viewAngleX -= 360
+    if viewAngleX < -89:
+        viewAngleX += 360
+    if viewAngleY > 180:
+        viewAngleY -= 360
+    if viewAngleY < -180:
+        viewAngleY += 360
+    return viewAngleX, viewAngleY
+
+
 class TargetPlayer:
     def __init__(self, index, pm, client, aimspot):
         self.pm = pm
@@ -31,10 +42,7 @@ class TargetPlayer:
         self.Team = 0
         self.BonePos = Vector(0, 0, 0)
         self.ViewOffset = Vector(0, 0, 0)
-        if not aimspot or aimspot == "":
-            self.Aimspot = 8
-        else:
-            self.Aimspot = int(aimspot)
+        self.Aimspot = aimspot
 
     def get_origin(self):
         bone_matrix = self.pm.read_int(self.TargetPlayer + m_dwBoneMatrix)
@@ -57,39 +65,6 @@ class TargetPlayer:
     def get_view_offset(self):
         self.ViewOffset = self.pm.read_int(self.TargetPlayer + m_vecViewOffset)
 
-def normalizeAngles(viewAngleX, viewAngleY):
-    if viewAngleX > 89:
-        viewAngleX -= 360
-    if viewAngleX < -89:
-        viewAngleX += 360
-    if viewAngleY > 180:
-        viewAngleY -= 360
-    if viewAngleY < -180:
-        viewAngleY += 360
-    return viewAngleX, viewAngleY
-
-def CalcDistance(current: Vector, new: Vector):
-    distance = Vector(0, 0, 0)
-
-    distance.x = new.x - current.x
-
-    if distance.x < -89:
-        distance.x += 360
-    elif distance.x > 89:
-        distance.x -= 360
-    if distance.x < 0.0:
-        distance.x = -distance.x
-
-    distance.y = new.y - current.y
-    if distance.y < - 180:
-        distance.y += 360
-    elif distance.y > 180:
-        distance.y -= 360
-    if distance.y < 0.0:
-        distance.y = -distance.y
-
-    mag = sqrt(distance.x * distance.x + distance.y * distance.y)
-    return mag
 
 class LocalPlayer:
     def __init__(self, pm, client, engine_pointer):
@@ -130,8 +105,7 @@ class LocalPlayer:
         delta.y = TargetPlayer.y - self.Origin.y
         delta.z = TargetPlayer.z - (self.Origin.z - self.ViewOffset.z)
         distance = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)
-        distance2 = sqrt(delta.x * delta.x + delta.y * delta.y)
-        self.Distance = distance2
+        self.Distance = distance
         return distance
 
     def aim_at(self, TargetPlayer, OldDelta, fov):
