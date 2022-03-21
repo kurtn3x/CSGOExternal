@@ -1,25 +1,9 @@
 from classes.Vector import Vector
 from math import *
+from offsets import *
 
-radian = 57.295779513082
-m_iHealth = 0x100
-dwEntityList = 0x4DCEEAC
-dwLocalPlayer = 0xDB35DC
-dwGlowObjectManager = 0x5317308
-m_iGlowIndex = 0x10488
-m_iTeamNum = 0xF4
-dwClientState = 0x58CFC4
-dwClientState_ViewAngles = 0x4D90
-m_bDormant = 0xED
-m_vecOrigin = 0x138
-m_vecViewOffset = 0x108
-m_dwBoneMatrix = 0x26A8
-clientstate_net_channel = 0x9C
-clientstate_last_outgoing_command = 0x4D2C
-dwClientState_MaxPlayer = 0x388
 
 def calc_distance(current_x, current_y, new_x, new_y):
-
     distancex = new_x - current_x
     if distancex < -89:
         distancex += 360
@@ -53,7 +37,6 @@ def normalizeAngles(viewAngleX, viewAngleY):
 class TargetPlayer:
     def __init__(self, index, pm, client, aimspot):
         self.pm = pm
-        self.client = client
         self.TargetPlayer = pm.read_uint(client + dwEntityList + index * 0x10)
         self.MaxPlayers = 32
         self.Origin = Vector(0, 0, 0)
@@ -63,9 +46,17 @@ class TargetPlayer:
         self.ViewOffset = Vector(0, 0, 0)
         self.Aimspot = aimspot
         self.Dormant = 0
+        self.SpottedMask = 0
+        self.Spotted = 0
 
     def get_dormant(self):
         self.Dormant = self.pm.read_uint(self.TargetPlayer + m_bDormant)
+
+    def get_spotted_mask(self):
+        self.SpottedMask = self.pm.read_uint(self.TargetPlayer + m_bSpottedByMask)
+
+    def get_spotted(self):
+        self.Spotted = self.pm.read_uint(self.TargetPlayer + m_bSpotted)
 
     def get_origin(self):
         bone_matrix = self.pm.read_int(self.TargetPlayer + m_dwBoneMatrix)
@@ -102,9 +93,19 @@ class LocalPlayer:
         self.Distance = 0
         self.Pitch = 0
         self.Yaw = 0
+        self.ID = 0
+        self.PunchX = 0
+        self.PunchY = 0
 
     def get(self):
         self.LocalPlayer = self.pm.read_uint(self.client + dwLocalPlayer)
+
+    def get_id(self):
+        self.ID = self.pm.read_uint(self.engine_pointer + dwClientState_GetLocalPlayer)
+
+    def get_punch(self):
+        self.PunchX = self.pm.read_float(self.LocalPlayer +  m_aimPunchAngle)
+        self.PunchY =self.pm.read_float(self.LocalPlayer +  m_aimPunchAngle + 0x4)
 
     def get_origin(self):
         self.Origin.x = self.pm.read_float(self.LocalPlayer + m_vecOrigin)
