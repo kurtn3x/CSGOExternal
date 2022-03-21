@@ -7,8 +7,9 @@ import time
 import pymem
 from mainwindow import Ui_MainWindow
 from funcs.glow import glow
-from funcs.aimbot import LocalPlayer, TargetPlayer
+from funcs.aimbot import LocalPlayer, TargetPlayer, normalizeAngles, calc_distance
 from classes.Vector import Vector
+from math import *
 
 # write offset parser
 m_iHealth = 0x100
@@ -65,7 +66,6 @@ class AimbotThread(QThread):
 
     def run(self):
         while True:
-            print(self.AIMSPOT)
             time.sleep(0.000001)
             OldDelta = Vector(0, 0, 0)
             local_player = LocalPlayer(pm, client, engine_pointer)
@@ -77,7 +77,8 @@ class AimbotThread(QThread):
             local_player.get_origin()
             self.update_localpos.emit((local_player.Origin.x, local_player.Origin.y, local_player.Origin.z))
             closestDistance = 1000000
-            closestDistanceIndex = -1
+            old_distance_x = 111111111
+            old_distance_y = 111111111
             for i in range(32):
                 target_player = TargetPlayer(i, pm, client, self.AIMSPOT)
                 if target_player.TargetPlayer:
@@ -96,19 +97,36 @@ class AimbotThread(QThread):
                         continue
                     if local_player.LocalPlayer == target_player.TargetPlayer:
                         continue
+                    delta = Vector(0, 0, 0)
+                    delta.x = local_player.Origin.x - target_player.BonePos.x
+                    delta.y = local_player.Origin.y - target_player.BonePos.y
+                    delta.z = local_player.Origin.z - target_player.BonePos.z
+                    hyp = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)
+                    pitch = atan(delta.z / hyp) * 180 / pi
+                    yaw = atan(delta.y / delta.x) * 180 / pi
+                    if delta.x >= 0.0:
+                        yaw += 180.0
 
+                    pitch, yaw = normalizeAngles(pitch, yaw)
                     currentDistance = local_player.get_distance(target_player.Origin)
-                    if currentDistance < closestDistance:
-                        closestDistance = currentDistance
-                        closestEnemy = target_player
-                        closestDistanceIndex = i
-            if closestDistanceIndex == -1:
-                pass
-            else:
-                self.update_targetpos.emit((closestEnemy.BonePos.x, closestEnemy.BonePos.y, closestEnemy.BonePos.z))
-                OldDelta = local_player.aim_at(closestEnemy.BonePos, OldDelta, self.FOV)
-                self.update_targetpos2.emit((local_player.Pitch, local_player.Yaw, "cock"))
+                    closest_to_crosshair = True
+                    if closest_to_crosshair:
+                        distance_x, distance_y = calc_distance(local_player.ViewOffset.x, local_player.ViewOffset.y,pitch, yaw)
+                        if -89 <= pitch <= 89 and -180 <= yaw <= 180:
+                            if distance_x < self.FOV and distance_y < self.FOV:
+                                if distance_x < old_distance_x and distance_y < old_distance_y:
+                                    pm.write_float(engine_pointer + dwClientState_ViewAngles, pitch)
+                                    pm.write_float(engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
+                                    old_distance_x = distance_x
+                                    old_distance_y = distance_y
 
+                    else:
+                        if currentDistance < closestDistance:
+                            closestDistance = currentDistance
+                            closestEnemy = target_player
+                            self.update_targetpos.emit((closestEnemy.BonePos.x, closestEnemy.BonePos.y, closestEnemy.BonePos.z))
+                            OldDelta = local_player.aim_at(closestEnemy.BonePos, OldDelta, self.FOV, pitch, yaw)
+                            self.update_targetpos2.emit((local_player.Pitch, local_player.Yaw, "cock"))
 
 class MainWindow(QMainWindow):
     def __init__(self, *args, **kwargs):
@@ -125,15 +143,25 @@ class MainWindow(QMainWindow):
         self.glow = GlowThread()
         self.glow_enabled = False
         self.aimbot_enabled = False
+        self.aimbot = AimbotThread()
+        self.aimbot.update_localpos.connect(self.update_localpos)
+        self.aimbot.update_targetpos.connect(self.update_targetpos)
+        self.aimbot.update_targetpos2.connect(self.update_targetpos2)
+
 
         self.mainwindow_ui.LocalPlayer1.setText("Local Player")
         self.mainwindow_ui.TargetPlayer1.setText("Target Head")
         self.mainwindow_ui.TargetPlayer5.setText("Calculated Pitch, Yaw")
         self.mainwindow_ui.fovSlider.valueChanged.connect(self.update_aimbot_fov)
+        self.mainwindow_ui.fovSlider.sliderMoved.connect(self.update_fov_label)
         self.mainwindow_ui.aimspotBox.activated.connect(self.update_aimbot_aimspot)
         self.mainwindow_ui.aimbotCheckBox.stateChanged.connect(self.start_aimbot)
 
+    def update_fov_label(self):
+        self.mainwindow_ui.fovLabel.setText(f"FOV: {self.mainwindow_ui.fovSlider.value()}")
+
     def update_aimbot_fov(self):
+        self.mainwindow_ui.fovLabel.setText(f"FOV: {self.mainwindow_ui.fovSlider.value()}")
         self.aimbot.update_fov(self.mainwindow_ui.fovSlider.value())
 
     def update_aimbot_aimspot(self):
@@ -185,7 +213,6 @@ class MainWindow(QMainWindow):
             self.aimbot.terminate()
         else:
             self.aimbot_enabled = True
-            self.aimbot = AimbotThread()
             self.aimbot.start()
 
 
@@ -201,9 +228,12 @@ class MainWindow(QMainWindow):
         self.oldPos = event.globalPos()
 
     def mouseMoveEvent(self, event):
-        delta = QPoint(event.globalPos() - self.oldPos)
-        self.move(self.x() + delta.x(), self.y() + delta.y())
-        self.oldPos = event.globalPos()
+        try:
+            delta = QPoint(event.globalPos() - self.oldPos)
+            self.move(self.x() + delta.x(), self.y() + delta.y())
+            self.oldPos = event.globalPos()
+        except AttributeError:
+            pass
 
 
 def run():

@@ -18,6 +18,25 @@ clientstate_net_channel = 0x9C
 clientstate_last_outgoing_command = 0x4D2C
 dwClientState_MaxPlayer = 0x388
 
+def calc_distance(current_x, current_y, new_x, new_y):
+
+    distancex = new_x - current_x
+    if distancex < -89:
+        distancex += 360
+    elif distancex > 89:
+        distancex -= 360
+    if distancex < 0.0:
+        distancex = -distancex
+
+    distancey = new_y - current_y
+    if distancey < -180:
+        distancey += 360
+    elif distancey > 180:
+        distancey -= 360
+    if distancey < 0.0:
+        distancey = -distancey
+
+    return distancex, distancey
 
 def normalizeAngles(viewAngleX, viewAngleY):
     if viewAngleX > 89:
@@ -43,6 +62,10 @@ class TargetPlayer:
         self.BonePos = Vector(0, 0, 0)
         self.ViewOffset = Vector(0, 0, 0)
         self.Aimspot = aimspot
+        self.Dormant = 0
+
+    def get_dormant(self):
+        self.Dormant = self.pm.read_uint(self.TargetPlayer + m_bDormant)
 
     def get_origin(self):
         bone_matrix = self.pm.read_int(self.TargetPlayer + m_dwBoneMatrix)
@@ -108,25 +131,39 @@ class LocalPlayer:
         self.Distance = distance
         return distance
 
-    def aim_at(self, TargetPlayer, OldDelta, fov):
+    def aim_at(self, target_player, OldDelta, fov, closestDistance):
         delta = Vector(0, 0, 0)
-        delta.x = self.Origin.x - TargetPlayer.x
-        delta.y = self.Origin.y - TargetPlayer.y
-        delta.z = self.Origin.z - TargetPlayer.z
+        delta.x = self.Origin.x - target_player.BonePos.x
+        delta.y = self.Origin.y - target_player.BonePos.y
+        delta.z = self.Origin.z - target_player.BonePos.z
         hyp = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)
         pitch = atan(delta.z / hyp) * 180 / pi
         yaw = atan(delta.y / delta.x) * 180 / pi
+
         if delta.x >= 0.0:
             yaw += 180.0
         pitch, yaw = normalizeAngles(pitch, yaw)
-        if -89 <= pitch <= 89 and -180 <= yaw <= 180 and self.Distance:
-            if OldDelta.x == TargetPlayer.x and OldDelta.y == TargetPlayer.y:
-                return Vector(TargetPlayer.x, TargetPlayer.y, TargetPlayer.z)
-            else:
-                NewDelta = Vector(TargetPlayer.x, TargetPlayer.y, TargetPlayer.z)
-                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
-                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
-                self.Yaw = yaw
-                self.Pitch = pitch
-                return NewDelta
+        closest_to_crosshair = True
+        if closest_to_crosshair:
+            distance_x, distance_y = calc_distance(self.ViewOffset.x, self.ViewOffset.y, pitch, yaw)
+            if distance_x < fov and distance_y < fov:
+                if -89 <= pitch <= 89 and -180 <= yaw <= 180:
+                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
+                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
+        # else:
+        #     currentDistance = self.get_distance(target_player.Origin)
+        #     if currentDistance < closestDistance:
+        #         closestDistance = currentDistance
+        #         if -89 <= pitch <= 89 and -180 <= yaw <= 180 and self.Distance:
+        #             if OldDelta.x == target_player.BonePos.x and OldDelta.y == target_player.BonePos.y:
+        #                 return closestDistance, Vector(target_player.BonePos.x, target_player.BonePos.y, target_player.BonePos.z)
+        #             else:
+        #                 distance_x, distance_y = calc_distance(self.ViewOffset.x, self.ViewOffset.y, pitch, yaw)
+        #                 if distance_x < fov and distance_y < fov:
+        #                     NewDelta = Vector(target_player.BonePos.x, target_player.BonePos.y, target_player.BonePos.z)
+        #                     self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
+        #                     self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
+        #                     self.Yaw = yaw
+        #                     self.Pitch = pitch
+        #                     return closestDistance, NewDelta
 
