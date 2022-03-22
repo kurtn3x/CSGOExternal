@@ -1,15 +1,7 @@
-# class Visuals:
-#     def __init__(self):
-#         self.GlowEnabled = False
-#         self.FovChangerEnabled = False
-#
-#     def toogle_glow(self):
-#         if self.GlowEnabled:
-#             self.GlowEnabled = False
-#         else:
-#             self.GlowEnabled = True
+from Settings.offsets import *
 
-def glow(pm, client, dwGlowObjectManager, dwEntityList, m_iTeamNum, m_iGlowIndex):
+
+def glow(pm, client):
     glow_manager = pm.read_int(client + dwGlowObjectManager)
     for i in range(1, 32):
         entity = pm.read_int(client + dwEntityList + i * 0x10)

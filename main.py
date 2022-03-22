@@ -1,18 +1,15 @@
 from PyQt5.QtCore import *
-from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import sys
 from global_hotkeys import *
-import time
 import pymem
-from mainwindow import Ui_MainWindow
+from Settings.mainwindow import Ui_MainWindow
 from funcs.glow import glow
-from funcs.aimbot import LocalPlayer, TargetPlayer, normalizeAngles, calc_distance
-from classes.Vector import Vector
-from math import *
-from offsets import *
+from funcs.aimbot import LocalPlayer, TargetPlayer
+from Settings.offsets import *
 from keyboard import is_pressed
 from funcs.bunnyhop import Bhop, AutoStrafe
+
 
 class WindowThread(QThread):
     update_progress = pyqtSignal(str)
@@ -25,6 +22,7 @@ class WindowThread(QThread):
                    [["insert"], None, self.send_signal]]
         register_hotkeys(binding)
         start_checking_hotkeys()
+
 
 class BunnyhopThread(QThread):
     def __init__(self):
@@ -49,11 +47,10 @@ class BunnyhopThread(QThread):
                 self.OldViewangle = y_angle
 
 
-
 class GlowThread(QThread):
     def run(self):
         while True:
-            glow(pm, client, dwGlowObjectManager, dwEntityList, m_iTeamNum, m_iGlowIndex)
+            glow(pm, client)
 
 
 class AimbotThread(QThread):
@@ -99,12 +96,12 @@ class AimbotThread(QThread):
             self.Rage = True
 
     def run(self):
+        local_player = LocalPlayer(pm, client, engine_pointer, engine)
+        local_player.get()
         while True:
-            local_player = LocalPlayer(pm, client, engine_pointer, engine)
-            local_player.get()
             old_distance_x = 111111111
             old_distance_y = 111111111
-            playerfound = True
+
             for i in range(32):
                 target_player = TargetPlayer(i, pm, client, self.Aimspot)
 
@@ -125,16 +122,12 @@ class AimbotThread(QThread):
                     continue
                 if local_player.LocalPlayer == target_player.TargetPlayer:
                     continue
-
-                print(target_player.Dormant)
-                local_player.aim_at(target_player, old_distance_x, old_distance_y, self.Spotted, self.FOV, self.Silent, self.RCS)
-                        # currentDistance = local_player.get_distance(target_player.Origin)
-                        # if currentDistance < closestDistance:
-                        #     closestDistance = currentDistance
-                        #     closestEnemy = target_player
-                        #     self.update_targetpos.emit((closestEnemy.BonePos.x, closestEnemy.BonePos.y, closestEnemy.BonePos.z))
-                        #     OldDelta = local_player.aim_at(closestEnemy.BonePos, OldDelta, self.FOV, pitch, yaw)
-                        #     self.update_targetpos2.emit((local_player.Pitch, local_player.Yaw, "cock"))
+                if target_player.Dormant:
+                    continue
+                try:
+                    old_distance_x, old_distance_y = local_player.aim_at(target_player, old_distance_x, old_distance_y, self.Spotted, self.FOV, self.Silent, self.RCS)
+                except TypeError:
+                    continue
 
 
 class MainWindow(QMainWindow):
@@ -163,7 +156,7 @@ class MainWindow(QMainWindow):
         # Aimbot
         self.mainwindow_ui.aimbotCheckBox.stateChanged.connect(self.start_aimbot)
         self.mainwindow_ui.fovSlider.valueChanged.connect(self.update_aimbot_fov)
-        self.mainwindow_ui.fovLineEdit.textChanged.connect(self.fovSliderSetValue)
+        self.mainwindow_ui.fovLineEdit.textChanged.connect(self.fov_slider_set_value)
         self.mainwindow_ui.aimspotBox.activated.connect(self.update_aimbot_aimspot)
         self.mainwindow_ui.silentaimCheckBox.stateChanged.connect(self.toogle_silentaim)
         self.mainwindow_ui.spottedCheckBox.stateChanged.connect(self.toogle_spotted)
@@ -210,8 +203,7 @@ class MainWindow(QMainWindow):
             self.bunnyhop_enabled = True
             self.bunnyhop.start()
 
-
-    def fovSliderSetValue(self, val):
+    def fov_slider_set_value(self, val):
         val = float(val) * 10
         val = int(val)
         if 0.1 < val < 360:

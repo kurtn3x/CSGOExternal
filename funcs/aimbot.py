@@ -1,6 +1,6 @@
 from classes.Vector import Vector
 from math import *
-from offsets import *
+from Settings.offsets import *
 
 
 def calc_distance(current_x, current_y, new_x, new_y):
@@ -21,6 +21,7 @@ def calc_distance(current_x, current_y, new_x, new_y):
         distancey = -distancey
 
     return distancex, distancey
+
 
 def normalizeAngles(viewAngleX, viewAngleY):
     if viewAngleX > 89:
@@ -189,6 +190,7 @@ class LocalPlayer:
                                         self.pm.write_float(VerifedOldUser + 0x10, yaw)
                                         self.pm.write_int(VerifedOldUser + 0x30, m_buttons | (1 << 0))
                                         self.pm.write_uchar(self.engine + dwbSendPackets, 1)
+                                        return old_distance_x, old_distance_y
 
                                 elif Silent and not RCS:  # not working
                                     self.pm.write_uchar(self.engine + dwbSendPackets, 0)
@@ -209,30 +211,33 @@ class LocalPlayer:
                                         self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
                                         self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
                                         self.pm.write_uchar(self.engine + dwbSendPackets, 1)
+                                        return old_distance_x, old_distance_y
+
                                     else:
                                         self.pm.write_uchar(self.engine + dwbSendPackets, 1)
 
                                 elif RCS and self.pm.read_int(self.LocalPlayer + m_iShotsFired) > 1:
                                     self.get_punch()
-                                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles,
-                                                   pitch - (self.PunchX * 2))
-                                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4,
-                                                   yaw - (self.PunchY * 2))
+                                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch - (self.PunchX * 2))
+                                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw - (self.PunchY * 2))
+                                    return old_distance_x, old_distance_y
 
                                 else:
                                     self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
                                     self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
+                                    return old_distance_x, old_distance_y
+
                         else:
                             if RCS and self.pm.read_int(self.LocalPlayer + m_iShotsFired) > 1:
                                 self.get_punch()
-                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles,
-                                               pitch - (self.PunchX * 2))
-                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4,
-                                               yaw - (self.PunchY * 2))
+                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch - (self.PunchX * 2))
+                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw - (self.PunchY * 2))
+                                return old_distance_x, old_distance_y
 
                             else:
                                 self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
                                 self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
+                                return old_distance_x, old_distance_y
 
         # delta = Vector(0, 0, 0)
         # delta.x = self.Origin.x - target_player.BonePos.x

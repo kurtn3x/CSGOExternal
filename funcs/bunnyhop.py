@@ -1,4 +1,4 @@
-from offsets import *
+from Settings.offsets import *
 
 def Bhop(pm, client, player):
     force_jump = client + dwForceJump
