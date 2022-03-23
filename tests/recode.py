@@ -309,6 +309,7 @@ class NetVarList:
         self.m_iShotsFired = table.get_offset('m_iShotsFired')
         self.m_iCrossHairID = table.get_offset('m_bHasDefuser') + 0x5C
         self.m_iGlowIndex = table.get_offset('m_flFlashDuration') + 0x18
+        self.m_iFOV = table.get_offset('m_iFOV')
 
         table = NetVarTable('DT_BaseAnimating')
         self.m_dwBoneMatrix = table.get_offset('m_nForceBone') + 0x1C
@@ -317,16 +318,15 @@ class NetVarList:
         self.m_iItemDefinitionIndex = table.get_offset('m_iItemDefinitionIndex')
 
         self.dwEntityList = vt.entity.table - (mem.read_i32(vt.entity.function(6) + 0x22) - 0x38)
+        # self.dwEntityList = mem.find_pattern("client.dll", b'\xBB\x00\x00\x00\x00\x83\xFF\x01\x0F\x8C\x00\x00\x00\x00\x3B\xF8')
         self.dwClientState = mem.read_i32(mem.read_i32(vt.engine.function(18) + 0x21))
         self.dwGetLocalPlayer = mem.read_i32(vt.engine.function(12) + 0x16)
         self.dwViewAngles = mem.read_i32(vt.engine.function(19) + 0x191)
         self.dwMaxClients = mem.read_i32(vt.engine.function(20) + 0x07)
         self.dwState = mem.read_i32(vt.engine.function(26) + 0x07)
         self.dwButton = mem.read_i32(vt.input.function(28) + 0xC1 + 2)
-        if g_glow:
-            self.dwGlowObjectManager = mem.find_pattern("client.dll",
-                                                        b'\xA1\x00\x00\x00\x00\xA8\x01\x75\x4B', "x????xxxx")
-            self.dwGlowObjectManager = mem.read_i32(self.dwGlowObjectManager + 1) + 4
+        self.dwGlowObjectManager = mem.find_pattern("client.dll", b'\xA1\x00\x00\x00\x00\xA8\x01\x75\x4B', "x????xxxx")
+        self.dwGlowObjectManager = mem.read_i32(self.dwGlowObjectManager + 1) + 4
 
 
 class Player:
@@ -409,7 +409,8 @@ class Entity:
     def get_client_entity(index):
         return Player(mem.read_i32(nv.dwEntityList + index * 0x10))
 
-
+aimbot = True
+# Local_Player = pm.read_uint(client + dwLocalPlayer)
 class Thread(QThread):
     def run(self):
         while True:
@@ -417,6 +418,7 @@ class Thread(QThread):
                 k32.Sleep(1)
                 if Engine.is_in_game():
                     self = Entity.get_client_entity(Engine.get_local_player())
+                    mem.write_i16(Engine.get_local_player() + nv.m_iFOV, 60)
                     fl_sensitivity = _sensitivity.get_float()
                     view_angle = Engine.get_view_angles()
                     if g_glow:
@@ -435,7 +437,7 @@ class Thread(QThread):
                             mem.write_float(glow_pointer + index + 0x14, 0.8)  # a
                             mem.write_i8(glow_pointer + index + 0x28, 1)
                             mem.write_i8(glow_pointer + index + 0x29, 0)
-                    if True:
+                    if aimbot:
                         old_distance_x = 111111111
                         old_distance_y = 111111111
                         for i in range(0, Engine.get_max_clients()):
@@ -501,4 +503,9 @@ if __name__ == "__main__":
     mainwindow = MainWindow()
     mainwindow.show()
     sys.exit(app.exec_())
+
+
+
+# notes for monkeybrain
+# LocalPlayer =
 

@@ -566,7 +566,7 @@ def aim_at_target(sensitivity, va, angle):
         g_previous_tick = g_current_tick
         u32.mouse_event(0x0001, int(sx), int(sy), 0, 0)
 
-
+g_aimbot = False
 if __name__ == "__main__":
     if platform.architecture()[0] != '64bit':
         print('[!]64bit python required')
@@ -577,38 +577,12 @@ if __name__ == "__main__":
         nv = NetVarList()
         _sensitivity = ConVar('sensitivity')
         mp_teammates_are_enemies = ConVar('mp_teammates_are_enemies')
+        sky = ConVar('r_3dsky')
+        x = sky.get_int()
+        print(x)
     except Exception as e:
         print(e)
         exit(0)
-
-    print('[*]VirtualTables')
-    print('    VClient:            ' + hex(vt.client.table))
-    print('    VClientEntityList:  ' + hex(vt.entity.table))
-    print('    VEngineClient:      ' + hex(vt.engine.table))
-    print('    VEngineCvar:        ' + hex(vt.cvar.table))
-    print('    InputSystemVersion: ' + hex(vt.input.table))
-    print('[*]Offsets')
-    print('    EntityList:         ' + hex(nv.dwEntityList))
-    print('    ClientState:        ' + hex(nv.dwClientState))
-    print('    GetLocalPlayer:     ' + hex(nv.dwGetLocalPlayer))
-    print('    GetViewAngles:      ' + hex(nv.dwViewAngles))
-    print('    GetMaxClients:      ' + hex(nv.dwMaxClients))
-    print('    IsInGame:           ' + hex(nv.dwState))
-    print('[*]NetVars')
-    print('    m_iHealth:          ' + hex(nv.m_iHealth))
-    print('    m_vecViewOffset:    ' + hex(nv.m_vecViewOffset))
-    print('    m_lifeState:        ' + hex(nv.m_lifeState))
-    print('    m_nTickBase:        ' + hex(nv.m_nTickBase))
-    print('    m_vecPunch:         ' + hex(nv.m_vecPunch))
-    print('    m_iTeamNum:         ' + hex(nv.m_iTeamNum))
-    print('    m_vecOrigin:        ' + hex(nv.m_vecOrigin))
-    print('    m_hActiveWeapon:    ' + hex(nv.m_hActiveWeapon))
-    print('    m_iShotsFired:      ' + hex(nv.m_iShotsFired))
-    print('    m_iCrossHairID:     ' + hex(nv.m_iCrossHairID))
-    print('    m_dwBoneMatrix:     ' + hex(nv.m_dwBoneMatrix))
-    print('[*]Info')
-    print('    Creator:            github.com/ekknod')
-    print('    Websites:           https://ekknod.xyz')
     while mem.is_running() and not InputSystem.is_button_down(g_exit_key):
         k32.Sleep(1)
         if Engine.is_in_game():

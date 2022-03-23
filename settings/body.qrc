@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="body">
+    <file>body.jpg</file>
+  </qresource>
+</RCC>

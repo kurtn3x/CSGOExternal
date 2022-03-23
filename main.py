@@ -1,5 +1,8 @@
+import os.path
+
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
+from PyQt5.QtGui import QPixmap
 import sys
 from global_hotkeys import *
 import pymem
@@ -9,7 +12,8 @@ from funcs.aimbot import LocalPlayer, TargetPlayer
 from offsets.offsets import *
 from keyboard import is_pressed
 from funcs.bunnyhop import Bhop, AutoStrafe
-import win32gui
+from ctypes import windll
+k32 = windll.kernel32
 
 
 class WindowThread(QThread):
@@ -39,6 +43,7 @@ class BunnyhopThread(QThread):
 
     def run(self):
         while True:
+            k32.Sleep(1)
             if is_pressed("space"):
                 Bhop(pm, client, Local_Player)
 
@@ -50,8 +55,10 @@ class BunnyhopThread(QThread):
 
 class GlowThread(QThread):
     def run(self):
+        glow_manager = pm.read_int(client + dwGlowObjectManager)
         while True:
-            glow(pm, client)
+            k32.Sleep(1)
+            glow(pm, client, glow_manager)
 
 
 class AimbotThread(QThread):
@@ -65,12 +72,28 @@ class AimbotThread(QThread):
         self.Silent = False
         self.RCS = False
         self.Rage = False
+        self.enabled = False
+        self.Wait = 150
+        self.Smooth = False
+        self.Smoothvalue = 1
+
 
     def update_fov(self, fov):
         self.FOV = fov
 
     def update_aimspot(self, aimspot):
         self.Aimspot = aimspot
+
+    def toogle_enabled(self):
+        if self.enabled:
+            self.enabled = False
+            if self.RCS:
+                self.Wait = 1
+            else:
+                self.Wait = 150
+        else:
+            self.enabled = True
+            self.Wait = 1
 
     def toogle_silent(self):
         if self.Silent:
@@ -87,8 +110,13 @@ class AimbotThread(QThread):
     def toogle_rcs(self):
         if self.RCS:
             self.RCS = False
+            if self.enabled:
+                self.Wait = 1
+            else:
+                self.Wait = 150
         else:
             self.RCS = True
+            self.Wait = 1
 
     def toogle_rage(self):
         if self.Rage:
@@ -100,37 +128,50 @@ class AimbotThread(QThread):
         local_player = LocalPlayer(pm, client, engine_pointer, engine)
         local_player.get()
         while True:
-            old_distance_x = 111111111
-            old_distance_y = 111111111
+            k32.Sleep(self.Wait)
+            print(self.Wait)
+            if self.enabled:
+                old_distance_x = 111111111
+                old_distance_y = 111111111
 
-            for i in range(32):
-                target_player = pm.read_uint(client + dwEntityList + i * 0x10)
-                target_player = TargetPlayer(target_player, self.Aimspot, pm)
+                for i in range(32):
+                    target_player = pm.read_uint(client + dwEntityList + i * 0x10)
+                    target_player = TargetPlayer(target_player, self.Aimspot, pm)
 
-                if not target_player.TargetPlayer:
-                    continue
+                    if not target_player.TargetPlayer:
+                        continue
 
-                local_player.get_team()
-                target_player.get_team()
-                local_player.get_health()
-                target_player.get_health()
-                target_player.get_dormant()
+                    local_player.get_team()
+                    target_player.get_team()
+                    local_player.get_health()
+                    target_player.get_health()
+                    target_player.get_dormant()
 
-                if target_player.Team == local_player.Team:
-                    continue
-                if target_player.Health < 1 or local_player.Health < 1:
-                    continue
-                if not local_player.LocalPlayer:
-                    continue
-                if local_player.LocalPlayer == target_player.TargetPlayer:
-                    continue
-                if target_player.Dormant:
-                    continue
-                try:
-                    old_distance_x, old_distance_y = local_player.aim_at(target_player, old_distance_x, old_distance_y,
-                                                                         self.Spotted, self.FOV, self.Silent, self.RCS)
-                except TypeError:
-                    continue
+                    if target_player.Team == local_player.Team:
+                        continue
+                    if target_player.Health < 1 or local_player.Health < 1:
+                        continue
+                    if not local_player.LocalPlayer:
+                        continue
+                    if local_player.LocalPlayer == target_player.TargetPlayer:
+                        continue
+                    if target_player.Dormant:
+                        continue
+                    try:
+                        old_distance_x, old_distance_y = local_player.aim_at(target_player, old_distance_x,
+                                                                             old_distance_y, self.Spotted,
+                                                                             self.FOV, self.RCS,
+                                                                             self.Smooth, self.Smoothvalue)
+                    except TypeError:
+                        continue
+            else:
+                if self.RCS and pm.read_int(local_player.LocalPlayer + m_iShotsFired) > 1:
+                    local_player.get_view_offset()
+                    local_player.get_punch()
+                    pm.write_float(engine_pointer + dwClientState_ViewAngles,
+                                   local_player.ViewOffset.x - (local_player.PunchX * 2))
+                    pm.write_float(engine_pointer + dwClientState_ViewAngles + 0x4,
+                                   local_player.ViewOffset.y - (local_player.PunchY * 2))
 
 
 class MainWindow(QMainWindow):
@@ -143,12 +184,14 @@ class MainWindow(QMainWindow):
         self.WindowManager = WindowThread()
         self.WindowManager.start()
         self.WindowManager.update_progress.connect(self.open_close)
+        path = os.path.join("settings", "body.jpg")
+        self.mainwindow_ui.label_3.setPixmap(QPixmap(path))
 
         self.glow = GlowThread()
         self.glow_enabled = False
 
         self.aimbot = AimbotThread()
-        self.aimbot_enabled = False
+        self.aimbot.start()
 
         self.bunnyhop = BunnyhopThread()
         self.bunnyhop_enabled = False
@@ -158,10 +201,8 @@ class MainWindow(QMainWindow):
         self.mainwindow_ui.fovSlider.valueChanged.connect(self.update_aimbot_fov)
         self.mainwindow_ui.fovLineEdit.textChanged.connect(self.fov_slider_set_value)
         self.mainwindow_ui.aimspotBox.activated.connect(self.update_aimbot_aimspot)
-        self.mainwindow_ui.silentaimCheckBox.stateChanged.connect(self.toogle_silentaim)
         self.mainwindow_ui.spottedCheckBox.stateChanged.connect(self.toogle_spotted)
         self.mainwindow_ui.rcsCheckBox.stateChanged.connect(self.toogle_rcs)
-        self.mainwindow_ui.rageCheckBox.stateChanged.connect(self.toogle_rage)
 
         # Visuals
         self.mainwindow_ui.enableglowCheckBox.stateChanged.connect(self.start_glow)
@@ -229,20 +270,20 @@ class MainWindow(QMainWindow):
             self.glow.start()
 
     def start_aimbot(self):
-        if self.aimbot_enabled:
-            self.aimbot_enabled = False
-            self.aimbot.terminate()
-        else:
-            self.aimbot_enabled = True
-            self.aimbot.start()
+        self.aimbot.toogle_enabled()
+
+        # if self.aimbot_enabled:
+        #     self.aimbot_enabled = False
+        #     self.aimbot.terminate()
+        # else:
+        #     self.aimbot_enabled = True
+        #     self.aimbot.start()
 
     def open_close(self):
         if self.mainwindow_ui.tabWidget.isHidden():
             self.mainwindow_ui.tabWidget.show()
-            self.mainwindow_ui.frame.show()
         else:
             self.mainwindow_ui.tabWidget.hide()
-            self.mainwindow_ui.frame.hide()
 
     def mousePressEvent(self, event):
         self.oldPos = event.globalPos()
@@ -265,13 +306,21 @@ def run():
     pm = pymem.Pymem("csgo.exe")
     client = pymem.process.module_from_name(pm.process_handle, "client.dll").lpBaseOfDll
     engine = pymem.process.module_from_name(pm.process_handle, "engine.dll").lpBaseOfDll
+    cvars = pymem.process.module_from_name(pm.process_handle, 'vstdlib.dll').lpBaseOfDll
     engine_pointer = pm.read_uint(engine + dwClientState)
     Local_Player = pm.read_uint(client + dwLocalPlayer)
+    modules = list(pm.list_modules())
+    for module in modules:
+        if module.name == 'vstdlib.dll':
+            print(pymem.pattern.pattern_scan_module(pm.process_handle, module, b'sv_cheats'))
+
+    # pymem.pattern.pattern_scan_module(pm, cvars, b'sv_cheats')
+
+    # print(pm.read_string(cvars + ))
+    # pymem.pattern.scan_pattern_page(pm, )
 
     app = QApplication(["matplotlib"])
     mainwindow = MainWindow()
-    ID = mainwindow.winId()
-    win32gui.SetForegroundWindow(ID)
     mainwindow.show()
     sys.exit(app.exec_())
 

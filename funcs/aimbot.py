@@ -49,6 +49,8 @@ class TargetPlayer:
         self.Dormant = 0
         self.SpottedMask = 0
         self.Spotted = 0
+        # Head, Body, Lower Body, Left Arm, Right Arm, Left Leg, Right Leg --- 1= True, 0 = False
+        self.Bones = (0, 0, 0, 0, 0, 0, 0, 0, 0)
 
     def get_dormant(self):
         self.Dormant = self.pm.read_uint(self.TargetPlayer + m_bDormant)
@@ -106,8 +108,8 @@ class LocalPlayer:
         self.ID = self.pm.read_uint(self.engine_pointer + dwClientState_GetLocalPlayer)
 
     def get_punch(self):
-        self.PunchX = self.pm.read_float(self.LocalPlayer +  m_aimPunchAngle)
-        self.PunchY =self.pm.read_float(self.LocalPlayer +  m_aimPunchAngle + 0x4)
+        self.PunchX = self.pm.read_float(self.LocalPlayer + m_aimPunchAngle)
+        self.PunchY = self.pm.read_float(self.LocalPlayer + m_aimPunchAngle + 0x4)
 
     def get_origin(self):
         self.Origin.x = self.pm.read_float(self.LocalPlayer + m_vecOrigin)
@@ -134,143 +136,99 @@ class LocalPlayer:
         self.Distance = distance
         return distance
 
-    def aim_at(self, target_player, old_distance_x, old_distance_y, Spotted, FOV, Silent, RCS):
-        if target_player.TargetPlayer:
+    def aim_at(self, target_player, old_distance_x, old_distance_y, Spotted, FOV, RCS, Smooth, Smoothvalue):
+        self.get_view_offset()
+        self.get_origin()
+        target_player.get_view_offset()
+        target_player.get_bone_matrix()
+        target_player.get_spotted()
+        target_player.get_spotted_mask()
 
-            self.get_id()
-            self.get_view_offset()
-            self.get_origin()
-            target_player.get_origin()
-            target_player.get_view_offset()
-            target_player.get_bone_matrix()
-            target_player.get_spotted()
-            target_player.get_spotted_mask()
+        delta = Vector(0, 0, 0)
+        delta.x = self.Origin.x - target_player.BonePos.x
+        delta.y = self.Origin.y - target_player.BonePos.y
+        delta.z = self.Origin.z - target_player.BonePos.z
 
-            delta = Vector(0, 0, 0)
-            delta.x = self.Origin.x - target_player.BonePos.x
-            delta.y = self.Origin.y - target_player.BonePos.y
-            delta.z = self.Origin.z - target_player.BonePos.z
+        hyp = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)
+        pitch = atan(delta.z / hyp) * 180 / pi
+        yaw = atan(delta.y / delta.x) * 180 / pi
 
-            hyp = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)
-            pitch = atan(delta.z / hyp) * 180 / pi
-            yaw = atan(delta.y / delta.x) * 180 / pi
+        if delta.x >= 0.0:
+            yaw += 180.0
 
-            if delta.x >= 0.0:
-                yaw += 180.0
+        pitch, yaw = normalizeAngles(pitch, yaw)
 
-            pitch, yaw = normalizeAngles(pitch, yaw)
+        distance_x, distance_y = calc_distance(self.ViewOffset.x, self.ViewOffset.y, pitch, yaw)
 
-            distance_x, distance_y = calc_distance(self.ViewOffset.x, self.ViewOffset.y, pitch, yaw)
-
-            if -89 <= pitch <= 89 and -180 <= yaw <= 180:
-                if distance_x < FOV and distance_y < FOV:
-                    if distance_x < old_distance_x and distance_y < old_distance_y:
-                        old_distance_x = distance_x
-                        old_distance_y = distance_y
+        if -89 <= pitch <= 89 and -180 <= yaw <= 180:
+            if distance_x < FOV and distance_y < FOV:
+                if distance_x < old_distance_x and distance_y < old_distance_y:
+                    old_distance_x = distance_x
+                    old_distance_y = distance_y
+                    if RCS and self.pm.read_int(self.LocalPlayer + m_iShotsFired) > 1:
                         if Spotted:
+                            self.get_id()
                             if target_player.SpottedMask & (1 << self.ID):
-                                if Silent & RCS:  # not working
-                                    self.pm.write_uchar(self.engine + dwbSendPackets, 0)
-                                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
-                                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
-                                    Commands = self.pm.read_int(self.client + dwInput + 0xF4)
-                                    VerifedCommands = self.pm.read_int(self.client + dwInput + 0xF8)
-                                    Desired = self.pm.read_int(self.engine_pointer + clientstate_last_outgoing_command) + 2
-                                    OldUser = Commands + ((Desired - 1) % 150) * 100
-                                    VerifedOldUser = VerifedCommands + ((Desired - 1) % 150) * 0x68
-                                    m_buttons = self.pm.read_int(OldUser + 0x30)
-                                    Net_Channel = self.pm.read_uint(self.engine_pointer + clientstate_net_channel)
-                                    if self.pm.read_int(Net_Channel + 0x18) < Desired:
-                                        pass
-                                    else:
-                                        self.pm.write_float(OldUser + 0x0C, pitch)
-                                        self.pm.write_float(OldUser + 0x10, yaw)
-                                        self.pm.write_int(OldUser + 0x30, m_buttons | (1 << 0))
-                                        self.pm.write_float(VerifedOldUser + 0x0C, pitch)
-                                        self.pm.write_float(VerifedOldUser + 0x10, yaw)
-                                        self.pm.write_int(VerifedOldUser + 0x30, m_buttons | (1 << 0))
-                                        self.pm.write_uchar(self.engine + dwbSendPackets, 1)
-                                        return old_distance_x, old_distance_y
-
-                                elif Silent and not RCS:  # not working
-                                    self.pm.write_uchar(self.engine + dwbSendPackets, 0)
-                                    Commands = self.pm.read_int(self.client + dwInput + 0xF4)
-                                    VerifedCommands = self.pm.read_int(self.client + dwInput + 0xF8)
-                                    Desired = self.pm.read_int(self.engine_pointer + clientstate_last_outgoing_command) + 2
-                                    OldUser = Commands + ((Desired - 1) % 150) * 100
-                                    VerifedOldUser = VerifedCommands + ((Desired - 1) % 150) * 0x68
-                                    # m_buttons = pm.read_int(OldUser + 0x30)
-                                    Net_Channel = self.pm.read_uint(self.engine_pointer + clientstate_net_channel)
-                                    if self.pm.read_int(Net_Channel + 0x18) < Desired:
-                                        self.pm.write_float(OldUser + 0x0C, pitch)
-                                        self.pm.write_float(OldUser + 0x10, yaw)
-                                        # pm.write_int(OldUser + 0x30, m_buttons | (1 << 0))
-                                        self.pm.write_float(VerifedOldUser + 0x0C, pitch)
-                                        self.pm.write_float(VerifedOldUser + 0x10, yaw)
-                                        # pm.write_int(VerifedOldUser + 0x30, m_buttons | (1 << 0))
-                                        self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
-                                        self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
-                                        self.pm.write_uchar(self.engine + dwbSendPackets, 1)
-                                        return old_distance_x, old_distance_y
-
-                                    else:
-                                        self.pm.write_uchar(self.engine + dwbSendPackets, 1)
-
-                                elif RCS and self.pm.read_int(self.LocalPlayer + m_iShotsFired) > 1:
-                                    self.get_punch()
-                                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch - (self.PunchX * 2))
-                                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw - (self.PunchY * 2))
-                                    return old_distance_x, old_distance_y
-
-                                else:
-                                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
-                                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
-                                    return old_distance_x, old_distance_y
+                                self.get_punch()
+                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles,
+                                                    pitch - (self.PunchX * 2))
+                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4,
+                                                    yaw - (self.PunchY * 2))
+                                return old_distance_x, old_distance_y
 
                         else:
-                            if RCS and self.pm.read_int(self.LocalPlayer + m_iShotsFired) > 1:
+                            self.get_punch()
+                            self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles,
+                                                pitch - (self.PunchX * 2))
+                            self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4,
+                                                yaw - (self.PunchY * 2))
+                            return old_distance_x, old_distance_y
+
+                    else:
+                        if Spotted:
+                            if target_player.SpottedMask & (1 << self.ID):
                                 self.get_punch()
-                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch - (self.PunchX * 2))
-                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw - (self.PunchY * 2))
+                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles,
+                                                    pitch - (self.PunchX * 2))
+                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4,
+                                                    yaw - (self.PunchY * 2))
                                 return old_distance_x, old_distance_y
+                        else:
+                            self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
+                            self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
+                            return old_distance_x, old_distance_y
 
-                            else:
-                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
-                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
-                                return old_distance_x, old_distance_y
-
-        # delta = Vector(0, 0, 0)
-        # delta.x = self.Origin.x - target_player.BonePos.x
-        # delta.y = self.Origin.y - target_player.BonePos.y
-        # delta.z = self.Origin.z - target_player.BonePos.z
-        # hyp = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)
-        # pitch = atan(delta.z / hyp) * 180 / pi
-        # yaw = atan(delta.y / delta.x) * 180 / pi
-        #
-        # if delta.x >= 0.0:
-        #     yaw += 180.0
-        # pitch, yaw = normalizeAngles(pitch, yaw)
-        # closest_to_crosshair = True
-        # if closest_to_crosshair:
-        #     distance_x, distance_y = calc_distance(self.ViewOffset.x, self.ViewOffset.y, pitch, yaw)
-        #     if distance_x < fov and distance_y < fov:
-        #         if -89 <= pitch <= 89 and -180 <= yaw <= 180:
-        #             self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
-        #             self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
-        # else:
-        #     currentDistance = self.get_distance(target_player.Origin)
-        #     if currentDistance < closestDistance:
-        #         closestDistance = currentDistance
-        #         if -89 <= pitch <= 89 and -180 <= yaw <= 180 and self.Distance:
-        #             if OldDelta.x == target_player.BonePos.x and OldDelta.y == target_player.BonePos.y:
-        #                 return closestDistance, Vector(target_player.BonePos.x, target_player.BonePos.y, target_player.BonePos.z)
-        #             else:
-        #                 distance_x, distance_y = calc_distance(self.ViewOffset.x, self.ViewOffset.y, pitch, yaw)
-        #                 if distance_x < fov and distance_y < fov:
-        #                     NewDelta = Vector(target_player.BonePos.x, target_player.BonePos.y, target_player.BonePos.z)
-        #                     self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
-        #                     self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
-        #                     self.Yaw = yaw
-        #                     self.Pitch = pitch
-        #                     return closestDistance, NewDelta
-
+    # delta = Vector(0, 0, 0)
+    # delta.x = self.Origin.x - target_player.BonePos.x
+    # delta.y = self.Origin.y - target_player.BonePos.y
+    # delta.z = self.Origin.z - target_player.BonePos.z
+    # hyp = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)
+    # pitch = atan(delta.z / hyp) * 180 / pi
+    # yaw = atan(delta.y / delta.x) * 180 / pi
+    #
+    # if delta.x >= 0.0:
+    #     yaw += 180.0
+    # pitch, yaw = normalizeAngles(pitch, yaw)
+    # closest_to_crosshair = True
+    # if closest_to_crosshair:
+    #     distance_x, distance_y = calc_distance(self.ViewOffset.x, self.ViewOffset.y, pitch, yaw)
+    #     if distance_x < fov and distance_y < fov:
+    #         if -89 <= pitch <= 89 and -180 <= yaw <= 180:
+    #             self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
+    #             self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
+    # else:
+    #     currentDistance = self.get_distance(target_player.Origin)
+    #     if currentDistance < closestDistance:
+    #         closestDistance = currentDistance
+    #         if -89 <= pitch <= 89 and -180 <= yaw <= 180 and self.Distance:
+    #             if OldDelta.x == target_player.BonePos.x and OldDelta.y == target_player.BonePos.y:
+    #                 return closestDistance, Vector(target_player.BonePos.x, target_player.BonePos.y, target_player.BonePos.z)
+    #             else:
+    #                 distance_x, distance_y = calc_distance(self.ViewOffset.x, self.ViewOffset.y, pitch, yaw)
+    #                 if distance_x < fov and distance_y < fov:
+    #                     NewDelta = Vector(target_player.BonePos.x, target_player.BonePos.y, target_player.BonePos.z)
+    #                     self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
+    #                     self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
+    #                     self.Yaw = yaw
+    #                     self.Pitch = pitch
+    #                     return closestDistance, NewDelta
