@@ -1,6 +1,6 @@
 from classes.Vector import Vector
 from math import *
-from Settings.offsets import *
+from offsets.offsets import *
 
 
 def calc_distance(current_x, current_y, new_x, new_y):
@@ -36,9 +36,9 @@ def normalizeAngles(viewAngleX, viewAngleY):
 
 
 class TargetPlayer:
-    def __init__(self, index, pm, client, aimspot):
+    def __init__(self, TargetPlayer, aimspot, pm):
         self.pm = pm
-        self.TargetPlayer = pm.read_uint(client + dwEntityList + index * 0x10)
+        self.TargetPlayer = TargetPlayer
         self.MaxPlayers = 32
         self.Origin = Vector(0, 0, 0)
         self.Health = 0

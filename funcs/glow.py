@@ -1,4 +1,4 @@
-from Settings.offsets import *
+from offsets.offsets import *
 
 
 def glow(pm, client):

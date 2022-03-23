@@ -2430,7 +2430,7 @@ class Ui_MainWindow(object):
         self.aimspotBox.setItemText(1, _translate("MainWindow", "Body"))
         self.label_2.setText(_translate("MainWindow", "Aimspot"))
         self.aimbotCheckBox.setText(_translate("MainWindow", "Enable Aimbot"))
-        self.label.setText(_translate("MainWindow", "Settings"))
+        self.label.setText(_translate("MainWindow", "settings"))
         self.aimatComboBox.setItemText(0, _translate("MainWindow", "Target Closest to Crosshair"))
         self.aimatComboBox.setItemText(1, _translate("MainWindow", "Target Closest to Player"))
         self.label_3.setText(_translate("MainWindow", "Aim At:"))

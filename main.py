@@ -3,12 +3,13 @@ from PyQt5.QtWidgets import *
 import sys
 from global_hotkeys import *
 import pymem
-from Settings.mainwindow import Ui_MainWindow
+from settings.mainwindow import Ui_MainWindow
 from funcs.glow import glow
 from funcs.aimbot import LocalPlayer, TargetPlayer
-from Settings.offsets import *
+from offsets.offsets import *
 from keyboard import is_pressed
 from funcs.bunnyhop import Bhop, AutoStrafe
+import win32gui
 
 
 class WindowThread(QThread):
@@ -103,7 +104,8 @@ class AimbotThread(QThread):
             old_distance_y = 111111111
 
             for i in range(32):
-                target_player = TargetPlayer(i, pm, client, self.Aimspot)
+                target_player = pm.read_uint(client + dwEntityList + i * 0x10)
+                target_player = TargetPlayer(target_player, self.Aimspot, pm)
 
                 if not target_player.TargetPlayer:
                     continue
@@ -125,7 +127,8 @@ class AimbotThread(QThread):
                 if target_player.Dormant:
                     continue
                 try:
-                    old_distance_x, old_distance_y = local_player.aim_at(target_player, old_distance_x, old_distance_y, self.Spotted, self.FOV, self.Silent, self.RCS)
+                    old_distance_x, old_distance_y = local_player.aim_at(target_player, old_distance_x, old_distance_y,
+                                                                         self.Spotted, self.FOV, self.Silent, self.RCS)
                 except TypeError:
                     continue
 
@@ -146,12 +149,9 @@ class MainWindow(QMainWindow):
 
         self.aimbot = AimbotThread()
         self.aimbot_enabled = False
-        self.aimbot.update_localpos.connect(self.update_localpos)
 
         self.bunnyhop = BunnyhopThread()
         self.bunnyhop_enabled = False
-
-
 
         # Aimbot
         self.mainwindow_ui.aimbotCheckBox.stateChanged.connect(self.start_aimbot)
@@ -167,7 +167,7 @@ class MainWindow(QMainWindow):
         self.mainwindow_ui.enableglowCheckBox.stateChanged.connect(self.start_glow)
         self.mainwindow_ui.fovchangerSlider.valueChanged.connect(self.fov_changer)
 
-        #Misc
+        # Misc
         self.mainwindow_ui.enablebunnyhopCheckBox.stateChanged.connect(self.start_bhop)
         self.mainwindow_ui.enableautostrafeCheckBox.stateChanged.connect(self.toogle_autostrafe)
 
@@ -183,8 +183,8 @@ class MainWindow(QMainWindow):
     def fov_changer(self, fov):
         if self.mainwindow_ui.fovchangerCheckBox.isChecked():
             self.mainwindow_ui.fovchangerLineEdit.setText(f"{fov}")
-            FOVChanger = Local_Player + m_iDefaultFOV
-            pm.write_int(FOVChanger, fov)
+            fov_changer = Local_Player + m_iDefaultFOV
+            pm.write_int(fov_changer, fov)
 
     def run(self):
         pm.write_int(self.FOVChanger, self.FOV)
@@ -220,20 +220,6 @@ class MainWindow(QMainWindow):
         if self.mainwindow_ui.aimspotBox.currentText() == "Head":
             self.aimbot.update_aimspot(8)
 
-    def update_viewangles(self, val):
-        x = val[0]
-        y = val[1]
-        self.mainwindow_ui.ViewAngle1.setText(f"Current Pitch: {x}")
-        self.mainwindow_ui.ViewAngle2.setText(f"Current Yaw: {y}")
-
-    def update_localpos(self, val):
-        x = val[0]
-        y = val[1]
-        z = val[2]
-        self.mainwindow_ui.LocalPlayer2.setText(f"X {x}")
-        self.mainwindow_ui.LocalPlayer3.setText(f"Y {y}")
-        self.mainwindow_ui.LocalPlayer4.setText(f"Z {z}")
-
     def start_glow(self):
         if self.glow_enabled:
             self.glow_enabled = False
@@ -249,7 +235,6 @@ class MainWindow(QMainWindow):
         else:
             self.aimbot_enabled = True
             self.aimbot.start()
-
 
     def open_close(self):
         if self.mainwindow_ui.tabWidget.isHidden():
@@ -285,6 +270,8 @@ def run():
 
     app = QApplication(["matplotlib"])
     mainwindow = MainWindow()
+    ID = mainwindow.winId()
+    win32gui.SetForegroundWindow(ID)
     mainwindow.show()
     sys.exit(app.exec_())
 
