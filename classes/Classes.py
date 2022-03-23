@@ -170,15 +170,17 @@ class Process:
 
 
 class NetVarTable:
-    def __init__(self, name):
+    def __init__(self, name, mem,vt):
         self.table = 0
-        a0 = mem.read_i32(mem.read_i32(vt.client.function(8) + 1))
+        self.mem = mem
+        self.vt = vt
+        a0 = self.mem.read_i32(self.mem.read_i32(self.vt.client.function(8) + 1))
         while a0 != 0:
-            a1 = mem.read_i32(a0 + 0x0C)
-            if name.encode('ascii', 'ignore') == mem.read_string(mem.read_i32(a1 + 0x0C), 120):
+            a1 = self.mem.read_i32(a0 + 0x0C)
+            if name.encode('ascii', 'ignore') == self.mem.read_string(self.mem.read_i32(a1 + 0x0C), 120):
                 self.table = a1
                 return
-            a0 = mem.read_i32(a0 + 0x10)
+            a0 = self.mem.read_i32(a0 + 0x10)
         raise Exception("NetVarTable [" + name + "] not found!")
 
     def get_offset(self, name):
@@ -189,61 +191,64 @@ class NetVarTable:
 
     def __get_offset(self, address, name):
         a0 = 0
-        for a1 in range(0, mem.read_i32(address + 0x4)):
-            a2 = a1 * 60 + mem.read_i32(address)
-            a3 = mem.read_i32(a2 + 0x2C)
-            a4 = mem.read_i32(a2 + 0x28)
-            if a4 != 0 and mem.read_i32(a4 + 0x4) != 0:
+        for a1 in range(0, self.mem.read_i32(address + 0x4)):
+            a2 = a1 * 60 + self.mem.read_i32(address)
+            a3 = self.mem.read_i32(a2 + 0x2C)
+            a4 = self.mem.read_i32(a2 + 0x28)
+            if a4 != 0 and self.mem.read_i32(a4 + 0x4) != 0:
                 a5 = self.__get_offset(a4, name)
                 if a5 != 0:
                     a0 += a3 + a5
-            if name.encode('ascii', 'ignore') == mem.read_string(mem.read_i32(a2), 120):
+            if name.encode('ascii', 'ignore') == self.mem.read_string(self.mem.read_i32(a2), 120):
                 return a3 + a0
         return a0
 
 
 class VirtualTable:
-    def __init__(self, table):
+    def __init__(self, table, mem):
         self.table = table
+        self.mem = mem
 
     def function(self, index):
-        return mem.read_i32(mem.read_i32(self.table) + index * 4)
+        return self.mem.read_i32(self.mem.read_i32(self.table) + index * 4)
 
 
 class Player:
-    def __init__(self, address):
+    def __init__(self, address, mem, nv):
         self.address = address
+        self.mem = mem
+        self.nv = nv
 
     def get_team_num(self):
-        return mem.read_i32(self.address + nv.m_iTeamNum)
+        return self.mem.read_i32(self.address + self.nv.m_iTeamNum)
 
     def get_health(self):
-        return mem.read_i32(self.address + nv.m_iHealth)
+        return self.mem.read_i32(self.address + self.nv.m_iHealth)
 
     def get_life_state(self):
-        return mem.read_i32(self.address + nv.m_lifeState)
+        return self.mem.read_i32(self.address + self.nv.m_lifeState)
 
     def get_tick_count(self):
-        return mem.read_i32(self.address + nv.m_nTickBase)
+        return self.mem.read_i32(self.address + self.nv.m_nTickBase)
 
     def get_shots_fired(self):
-        return mem.read_i32(self.address + nv.m_iShotsFired)
+        return self.mem.read_i32(self.address + self.nv.m_iShotsFired)
 
     def get_cross_index(self):
-        return mem.read_i32(self.address + nv.m_iCrossHairID)
+        return self.mem.read_i32(self.address + self.nv.m_iCrossHairID)
 
     def get_weapon(self):
-        a0 = mem.read_i32(self.address + nv.m_hActiveWeapon)
-        return mem.read_i32(nv.dwEntityList + ((a0 & 0xFFF) - 1) * 0x10)
+        a0 = self.mem.read_i32(self.address + self.nv.m_hActiveWeapon)
+        return self.mem.read_i32(self.nv.dwEntityList + ((a0 & 0xFFF) - 1) * 0x10)
 
     def get_weapon_id(self):
-        return mem.read_i32(self.get_weapon() + nv.m_iItemDefinitionIndex)
+        return self.mem.read_i32(self.get_weapon() + self.nv.m_iItemDefinitionIndex)
 
     def get_origin(self):
-        return mem.read_vec3(self.address + nv.m_vecOrigin)
+        return self.mem.read_vec3(self.address + self.nv.m_vecOrigin)
 
     def get_vec_view(self):
-        return mem.read_vec3(self.address + nv.m_vecViewOffset)
+        return self.mem.read_vec3(self.address + self.nv.m_vecViewOffset)
 
     def get_eye_pos(self):
         v = self.get_vec_view()
@@ -251,15 +256,15 @@ class Player:
         return Vector3(v.x + o.x, v.y + o.y, v.z + o.z)
 
     def get_vec_punch(self):
-        return mem.read_vec3(self.address + nv.m_vecPunch)
+        return self.mem.read_vec3(self.address + self.nv.m_vecPunch)
 
     def get_bone_pos(self, index):
         a0 = 0x30 * index
-        a1 = mem.read_i32(self.address + nv.m_dwBoneMatrix)
+        a1 = self.mem.read_i32(self.address + self.nv.m_dwBoneMatrix)
         return Vector3(
-            mem.read_float(a1 + a0 + 0x0C),
-            mem.read_float(a1 + a0 + 0x1C),
-            mem.read_float(a1 + a0 + 0x2C)
+            self.mem.read_float(a1 + a0 + 0x0C),
+            self.mem.read_float(a1 + a0 + 0x1C),
+            self.mem.read_float(a1 + a0 + 0x2C)
         )
 
     def is_valid(self):
@@ -269,77 +274,79 @@ class Player:
 
 class Engine:
     @staticmethod
-    def get_local_player():
+    def get_local_player(mem, nv):
         return mem.read_i32(nv.dwClientState + nv.dwGetLocalPlayer)
 
     @staticmethod
-    def get_view_angles():
+    def get_view_angles(mem, nv):
         return mem.read_vec3(nv.dwClientState + nv.dwViewAngles)
 
     @staticmethod
-    def get_max_clients():
+    def get_max_clients(mem, nv):
         return mem.read_i32(nv.dwClientState + nv.dwMaxClients)
 
     @staticmethod
-    def is_in_game():
+    def is_in_game(mem, nv):
         return mem.read_i8(nv.dwClientState + nv.dwState) >> 2
 
 
 class Entity:
     @staticmethod
-    def get_client_entity(index):
-        return Player(mem.read_i32(nv.dwEntityList + index * 0x10))
+    def get_client_entity(index, mem, nv):
+        return Player(mem.read_i32(nv.dwEntityList + index * 0x10), mem, nv)
 
 
 class InterfaceTable:
-    def __init__(self, name):
-        self.table_list = mem.read_i32(mem.read_i32(mem.get_export(mem.get_module(name), 'CreateInterface') - 0x6A))
+    def __init__(self, name, mem):
+        self.mem = mem
+        self.table_list = self.mem.read_i32(self.mem.read_i32(self.mem.get_export(self.mem.get_module(name), 'CreateInterface') - 0x6A))
 
     def get_interface(self, name):
         a0 = self.table_list
         while a0 != 0:
-            if name.encode('ascii', 'ignore') == mem.read_string(mem.read_i32(a0 + 0x4), 120)[0:-3]:
-                return VirtualTable(mem.read_i32(mem.read_i32(a0) + 1))
-            a0 = mem.read_i32(a0 + 0x8)
+            if name.encode('ascii', 'ignore') == self.mem.read_string(self.mem.read_i32(a0 + 0x4), 120)[0:-3]:
+                return VirtualTable(self.mem.read_i32(self.mem.read_i32(a0) + 1), self.mem)
+            a0 = self.mem.read_i32(a0 + 0x8)
         raise Exception("Interface [" + name + "] not found!")
 
 
 class InterfaceList:
-    def __init__(self):
-        table = InterfaceTable('client.dll')
+    def __init__(self, mem):
+        self.mem = mem
+        table = InterfaceTable('client.dll', self.mem)
         self.client = table.get_interface('VClient')
         self.entity = table.get_interface('VClientEntityList')
-        table = InterfaceTable('engine.dll')
+        table = InterfaceTable('engine.dll', self.mem)
         self.engine = table.get_interface('VEngineClient')
-        table = InterfaceTable('vstdlib.dll')
+        table = InterfaceTable('vstdlib.dll', self.mem)
         self.cvar = table.get_interface('VEngineCvar')
-        table = InterfaceTable('inputsystem.dll')
+        table = InterfaceTable('inputsystem.dll', self.mem)
         self.input = table.get_interface('InputSystemVersion')
 
 
 class NetVarList:
-    def __init__(self):
-        table = NetVarTable('DT_BasePlayer')
+    def __init__(self, mem, vt):
+        table = NetVarTable('DT_BasePlayer', mem, vt)
         self.m_iHealth = table.get_offset('m_iHealth')
         self.m_vecViewOffset = table.get_offset('m_vecViewOffset[0]')
         self.m_lifeState = table.get_offset('m_lifeState')
         self.m_nTickBase = table.get_offset('m_nTickBase')
         self.m_vecPunch = table.get_offset('m_Local') + 0x70
 
-        table = NetVarTable('DT_BaseEntity')
+        table = NetVarTable('DT_BaseEntity', mem, vt)
         self.m_iTeamNum = table.get_offset('m_iTeamNum')
         self.m_vecOrigin = table.get_offset('m_vecOrigin')
 
-        table = NetVarTable('DT_CSPlayer')
+        table = NetVarTable('DT_CSPlayer', mem, vt)
         self.m_hActiveWeapon = table.get_offset('m_hActiveWeapon')
         self.m_iShotsFired = table.get_offset('m_iShotsFired')
         self.m_iCrossHairID = table.get_offset('m_bHasDefuser') + 0x5C
         self.m_iGlowIndex = table.get_offset('m_flFlashDuration') + 0x18
 
-        table = NetVarTable('DT_BaseAnimating')
+        table = NetVarTable('DT_BaseAnimating', mem, vt)
         self.m_dwBoneMatrix = table.get_offset('m_nForceBone') + 0x1C
 
-        table = NetVarTable('DT_BaseAttributableItem')
+        table = NetVarTable('DT_BaseAttributableItem', mem, vt)
         self.m_iItemDefinitionIndex = table.get_offset('m_iItemDefinitionIndex')
 
         self.dwEntityList = vt.entity.table - (mem.read_i32(vt.entity.function(6) + 0x22) - 0x38)

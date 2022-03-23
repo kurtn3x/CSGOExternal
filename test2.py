@@ -14,8 +14,8 @@ g_rcs = True
 g_aimbot = True
 g_aimbot_rcs = True
 g_aimbot_head = True
-g_aimbot_fov = 180.0
-g_aimbot_smooth = 5.0
+g_aimbot_fov = 180
+g_aimbot_smooth = 0
 g_aimbot_key = 107
 g_triggerbot_key = 111
 g_exit_key = 72
@@ -320,6 +320,80 @@ class NetVarList:
             self.dwGlowObjectManager = mem.read_i32(self.dwGlowObjectManager + 1) + 4
 
 
+class Player:
+    def __init__(self, address):
+        self.address = address
+
+    def get_team_num(self):
+        return mem.read_i32(self.address + nv.m_iTeamNum)
+
+    def get_health(self):
+        return mem.read_i32(self.address + nv.m_iHealth)
+
+    def get_life_state(self):
+        return mem.read_i32(self.address + nv.m_lifeState)
+
+    def get_tick_count(self):
+        return mem.read_i32(self.address + nv.m_nTickBase)
+
+    def get_shots_fired(self):
+        return mem.read_i32(self.address + nv.m_iShotsFired)
+
+    def get_cross_index(self):
+        return mem.read_i32(self.address + nv.m_iCrossHairID)
+
+    def get_weapon(self):
+        a0 = mem.read_i32(self.address + nv.m_hActiveWeapon)
+        return mem.read_i32(nv.dwEntityList + ((a0 & 0xFFF) - 1) * 0x10)
+
+    def get_weapon_id(self):
+        return mem.read_i32(self.get_weapon() + nv.m_iItemDefinitionIndex)
+
+    def get_origin(self):
+        return mem.read_vec3(self.address + nv.m_vecOrigin)
+
+    def get_vec_view(self):
+        return mem.read_vec3(self.address + nv.m_vecViewOffset)
+
+    def get_eye_pos(self):
+        v = self.get_vec_view()
+        o = self.get_origin()
+        return Vector3(v.x + o.x, v.y + o.y, v.z + o.z)
+
+    def get_vec_punch(self):
+        return mem.read_vec3(self.address + nv.m_vecPunch)
+
+    def get_bone_pos(self, index):
+        a0 = 0x30 * index
+        a1 = mem.read_i32(self.address + nv.m_dwBoneMatrix)
+        return Vector3(
+            mem.read_float(a1 + a0 + 0x0C),
+            mem.read_float(a1 + a0 + 0x1C),
+            mem.read_float(a1 + a0 + 0x2C)
+        )
+
+    def is_valid(self):
+        health = self.get_health()
+        return self.address != 0 and self.get_life_state() == 0 and 0 < health < 1338
+
+
+class Engine:
+    @staticmethod
+    def get_local_player():
+        return mem.read_i32(nv.dwClientState + nv.dwGetLocalPlayer)
+
+    @staticmethod
+    def get_view_angles():
+        return mem.read_vec3(nv.dwClientState + nv.dwViewAngles)
+
+    @staticmethod
+    def get_max_clients():
+        return mem.read_i32(nv.dwClientState + nv.dwMaxClients)
+
+    @staticmethod
+    def is_in_game():
+        return mem.read_i8(nv.dwClientState + nv.dwState) >> 2
+
 
 class Entity:
     @staticmethod
@@ -452,6 +526,7 @@ def get_best_target(va, local_p):
                     _target_bone = _bones[j]
     return a0 != 9999
 
+
 def aim_at_target(sensitivity, va, angle):
     global g_current_tick
     global g_previous_tick
@@ -566,7 +641,7 @@ if __name__ == "__main__":
                         u32.mouse_event(0x0002, 0, 0, 0, 0)
                         k32.Sleep(50)
                         u32.mouse_event(0x0004, 0, 0, 0, 0)
-                if g_aimbot and InputSystem.is_button_down(g_aimbot_key):
+                if g_aimbot:
                     g_current_tick = self.get_tick_count()
                     if not _target.is_valid() and not get_best_target(view_angle, self):
                         continue
@@ -588,4 +663,3 @@ if __name__ == "__main__":
                 continue
         else:
             g_previous_tick = 0
-            target_set(Player(0))
