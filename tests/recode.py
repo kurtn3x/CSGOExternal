@@ -8,6 +8,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from math import *
 from funcs.aimbot import normalizeAngles, calc_distance
+from ctypes import c_uint32, pointer
 
 
 ntdll = windll.ntdll

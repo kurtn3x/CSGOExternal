@@ -45,12 +45,13 @@ class TargetPlayer:
         self.Team = 0
         self.BonePos = Vector(0, 0, 0)
         self.ViewOffset = Vector(0, 0, 0)
-        self.Aimspot = aimspot
         self.Dormant = 0
         self.SpottedMask = 0
         self.Spotted = 0
-        # Head, Body, Lower Body, Left Arm, Right Arm, Left Leg, Right Leg --- 1= True, 0 = False
-        self.Bones = (0, 0, 0, 0, 0, 0, 0, 0, 0)
+        # Head, upper body, lower body, legs, arms
+        self.IndexToAimspot = {0: 8, 1: 5, 2: 3, 3: 1, 4: 0}
+        self.Aimspots = aimspot # [0, 0, 0, 0, 0]
+        self.Aimspot = 0
 
     def get_dormant(self):
         self.Dormant = self.pm.read_uint(self.TargetPlayer + m_bDormant)
@@ -62,6 +63,7 @@ class TargetPlayer:
         self.Spotted = self.pm.read_uint(self.TargetPlayer + m_bSpotted)
 
     def get_origin(self):
+        # doesnt do anything for now
         bone_matrix = self.pm.read_int(self.TargetPlayer + m_dwBoneMatrix)
         self.Origin.x = self.pm.read_float(bone_matrix + 0x30 * 5 + 0x0C)
         self.Origin.y = self.pm.read_float(bone_matrix + 0x30 * 5 + 0x1C)
@@ -74,6 +76,7 @@ class TargetPlayer:
         self.Team = self.pm.read_int(self.TargetPlayer + m_iTeamNum)
 
     def get_bone_matrix(self):
+
         bone_matrix = self.pm.read_int(self.TargetPlayer + m_dwBoneMatrix)
         self.BonePos.x = self.pm.read_float(bone_matrix + 0x30 * self.Aimspot + 0x0C)
         self.BonePos.y = self.pm.read_float(bone_matrix + 0x30 * self.Aimspot + 0x1C)
@@ -81,6 +84,24 @@ class TargetPlayer:
 
     def get_view_offset(self):
         self.ViewOffset = self.pm.read_int(self.TargetPlayer + m_vecViewOffset)
+
+    def get_best_bone(self, LocalPlayerOrigin):
+        delta = Vector(0, 0, 0)
+        best_hyp = 11111
+        best_spot = 0
+        for index, b in enumerate(self.Aimspots):
+            if b == 1:
+                # maybe rewrite to b>0 and just input aimspot nr, so the dic isnt needed
+                self.Aimspot = self.IndexToAimspot[index]
+                self.get_bone_matrix()
+                delta.x = LocalPlayerOrigin.x - self.BonePos.x
+                delta.y = LocalPlayerOrigin.y - self.BonePos.y
+                delta.z = LocalPlayerOrigin.z - self.BonePos.z
+                hyp = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)
+                if hyp < best_hyp:
+                    best_hyp = hyp
+                    best_spot = self.Aimspot
+        self.Aimspot = best_spot
 
 
 class LocalPlayer:
@@ -140,9 +161,10 @@ class LocalPlayer:
         self.get_view_offset()
         self.get_origin()
         target_player.get_view_offset()
-        target_player.get_bone_matrix()
         target_player.get_spotted()
         target_player.get_spotted_mask()
+        target_player.get_best_bone(self.Origin)
+        target_player.get_bone_matrix()
 
         delta = Vector(0, 0, 0)
         delta.x = self.Origin.x - target_player.BonePos.x

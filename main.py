@@ -1,4 +1,5 @@
 import os.path
+import time
 
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
@@ -12,7 +13,7 @@ from funcs.aimbot import LocalPlayer, TargetPlayer
 from offsets.offsets import *
 from keyboard import is_pressed
 from funcs.bunnyhop import Bhop, AutoStrafe
-from ctypes import windll
+from ctypes import windll, pointer, c_uint32
 k32 = windll.kernel32
 
 
@@ -23,17 +24,37 @@ class WindowThread(QThread):
         self.update_progress.emit("press")
 
     def run(self):
-        binding = [[["insert"], None, self.send_signal], [["insert"], None, self.send_signal],
-                   [["insert"], None, self.send_signal]]
-        register_hotkeys(binding)
-        start_checking_hotkeys()
+        while True:
+            k32.Sleep(50)
+            if is_pressed('insert'):
+                self.send_signal()
 
 
-class BunnyhopThread(QThread):
-    def __init__(self):
+class MainThread(QThread):
+    def __init__(self, pm, client):
         super().__init__()
+        # Visuals Settings
+        self.glow_enabled = 0
+        self.glow_manager = pm.read_int(client + dwGlowObjectManager)
+
+        # Misc Settings
+        self.bunnyhop_enabled = 0
         self.Autostrafe = False
         self.OldViewangle = 0
+
+
+        # Put rcs here ?????
+    def toogle_glow(self):
+        if self.glow_enabled:
+            self.glow_enabled = 0
+        else:
+            self.glow_enabled = 1
+
+    def toogle_bunnyhop(self):
+        if self.bunnyhop_enabled:
+            self.bunnyhop_enabled = 0
+        else:
+            self.bunnyhop_enabled = 1
 
     def toogle_autostrafe(self):
         if self.Autostrafe:
@@ -43,22 +64,17 @@ class BunnyhopThread(QThread):
 
     def run(self):
         while True:
-            k32.Sleep(1)
-            if is_pressed("space"):
-                Bhop(pm, client, Local_Player)
+            time.sleep(0.0004)
+            if self.bunnyhop_enabled:
+                if is_pressed("space"):
+                    Bhop(pm, client, Local_Player)
 
-            if self.Autostrafe:  # Autostrafe
-                y_angle = pm.read_float(engine_pointer + dwClientState_ViewAngles + 0x4)
-                y_angle = AutoStrafe(pm, client, Local_Player, y_angle, self.OldViewangle)
-                self.OldViewangle = y_angle
-
-
-class GlowThread(QThread):
-    def run(self):
-        glow_manager = pm.read_int(client + dwGlowObjectManager)
-        while True:
-            k32.Sleep(1)
-            glow(pm, client, glow_manager)
+                if self.Autostrafe:  # Autostrafe
+                    y_angle = pm.read_float(engine_pointer + dwClientState_ViewAngles + 0x4)
+                    y_angle = AutoStrafe(pm, client, Local_Player, y_angle, self.OldViewangle)
+                    self.OldViewangle = y_angle
+            if self.glow_enabled:
+                glow(pm, client, self.glow_manager)
 
 
 class AimbotThread(QThread):
@@ -67,7 +83,8 @@ class AimbotThread(QThread):
     def __init__(self):
         super().__init__()
         self.FOV = 1
-        self.Aimspot = 8
+        # Head, Upper Body, Lower Body, Arms, Legs
+        self.Aimspots = [0, 0, 0, 0, 0]
         self.Spotted = False
         self.Silent = False
         self.RCS = False
@@ -76,13 +93,19 @@ class AimbotThread(QThread):
         self.Wait = 150
         self.Smooth = False
         self.Smoothvalue = 1
-
+        self.closest = False
 
     def update_fov(self, fov):
         self.FOV = fov
 
     def update_aimspot(self, aimspot):
-        self.Aimspot = aimspot
+        self.Aimspots = aimspot
+
+    def toogle_closest(self):
+        if self.closest:
+            self.closest = False
+        else:
+            self.closest = True
 
     def toogle_enabled(self):
         if self.enabled:
@@ -136,7 +159,7 @@ class AimbotThread(QThread):
 
                 for i in range(32):
                     target_player = pm.read_uint(client + dwEntityList + i * 0x10)
-                    target_player = TargetPlayer(target_player, self.Aimspot, pm)
+                    target_player = TargetPlayer(target_player, self.Aimspots, pm)
 
                     if not target_player.TargetPlayer:
                         continue
@@ -161,7 +184,8 @@ class AimbotThread(QThread):
                         old_distance_x, old_distance_y = local_player.aim_at(target_player, old_distance_x,
                                                                              old_distance_y, self.Spotted,
                                                                              self.FOV, self.RCS,
-                                                                             self.Smooth, self.Smoothvalue)
+                                                                             self.Smooth, self.Smoothvalue
+                                                                             )
                     except TypeError:
                         continue
             else:
@@ -186,15 +210,13 @@ class MainWindow(QMainWindow):
         self.WindowManager.update_progress.connect(self.open_close)
         path = os.path.join("settings", "body.jpg")
         self.mainwindow_ui.label_3.setPixmap(QPixmap(path))
-
-        self.glow = GlowThread()
-        self.glow_enabled = False
+        self.mainthread = MainThread(pm, client)
+        self.mainthread.start()
 
         self.aimbot = AimbotThread()
         self.aimbot.start()
-
-        self.bunnyhop = BunnyhopThread()
-        self.bunnyhop_enabled = False
+        # Head, upper body, lower body, legs, arms
+        self.Aimspots = [0, 0, 0, 0, 0]
 
         # Aimbot
         self.mainwindow_ui.aimbotCheckBox.stateChanged.connect(self.start_aimbot)
@@ -203,14 +225,63 @@ class MainWindow(QMainWindow):
         self.mainwindow_ui.aimspotBox.activated.connect(self.update_aimbot_aimspot)
         self.mainwindow_ui.spottedCheckBox.stateChanged.connect(self.toogle_spotted)
         self.mainwindow_ui.rcsCheckBox.stateChanged.connect(self.toogle_rcs)
+        self.mainwindow_ui.headCheckBox.stateChanged.connect(self.aimspot_head)
+        self.mainwindow_ui.upperbodyCheckBox.stateChanged.connect(self.aimspot_uppbody)
+        self.mainwindow_ui.lowerbodyCheckBox.stateChanged.connect(self.aimspot_lowbody)
+        self.mainwindow_ui.legsCheckBox.stateChanged.connect(self.aimspot_leg)
+        self.mainwindow_ui.leftarmCheckBox.stateChanged.connect(self.aimspot_arms)
+
 
         # Visuals
-        self.mainwindow_ui.enableglowCheckBox.stateChanged.connect(self.start_glow)
+        self.mainwindow_ui.enableglowCheckBox.stateChanged.connect(self.toogle_glow)
         self.mainwindow_ui.fovchangerSlider.valueChanged.connect(self.fov_changer)
 
         # Misc
-        self.mainwindow_ui.enablebunnyhopCheckBox.stateChanged.connect(self.start_bhop)
+        self.mainwindow_ui.enablebunnyhopCheckBox.stateChanged.connect(self.toogle_bhop)
         self.mainwindow_ui.enableautostrafeCheckBox.stateChanged.connect(self.toogle_autostrafe)
+
+    def aimspot_head(self):
+        if self.Aimspots[0] == 0:
+            self.Aimspots[0] = 1
+            self.aimspot_changed()
+        else:
+            self.Aimspots[0] = 0
+            self.aimspot_changed()
+
+    def aimspot_uppbody(self):
+        if self.Aimspots[1] == 0:
+            self.Aimspots[1] = 1
+            self.aimspot_changed()
+        else:
+            self.Aimspots[1] = 0
+            self.aimspot_changed()
+
+    def aimspot_lowbody(self):
+        if self.Aimspots[2] == 0:
+            self.Aimspots[2] = 1
+            self.aimspot_changed()
+        else:
+            self.Aimspots[2] = 0
+            self.aimspot_changed()
+
+    def aimspot_leg(self):
+        if self.Aimspots[3] == 0:
+            self.Aimspots[3] = 1
+            self.aimspot_changed()
+        else:
+            self.Aimspots[3] = 0
+            self.aimspot_changed()
+
+    def aimspot_arms(self):
+        if self.Aimspots[4] == 0:
+            self.Aimspots[4] = 1
+            self.aimspot_changed()
+        else:
+            self.Aimspots[4] = 0
+            self.aimspot_changed()
+
+    def aimspot_changed(self):
+        self.aimbot.update_aimspot(self.Aimspots)
 
     def toogle_silentaim(self):
         self.aimbot.toogle_silent()
@@ -234,15 +305,10 @@ class MainWindow(QMainWindow):
         self.aimbot.toogle_spotted()
 
     def toogle_autostrafe(self):
-        self.bunnyhop.toogle_autostrafe()
+        self.mainthread.toogle_autostrafe()
 
-    def start_bhop(self):
-        if self.bunnyhop_enabled:
-            self.bunnyhop_enabled = False
-            self.bunnyhop.terminate()
-        else:
-            self.bunnyhop_enabled = True
-            self.bunnyhop.start()
+    def toogle_bhop(self):
+        self.mainthread.toogle_bunnyhop()
 
     def fov_slider_set_value(self, val):
         val = float(val) * 10
@@ -261,13 +327,8 @@ class MainWindow(QMainWindow):
         if self.mainwindow_ui.aimspotBox.currentText() == "Head":
             self.aimbot.update_aimspot(8)
 
-    def start_glow(self):
-        if self.glow_enabled:
-            self.glow_enabled = False
-            self.glow.terminate()
-        else:
-            self.glow_enabled = True
-            self.glow.start()
+    def toogle_glow(self):
+        self.mainthread.toogle_glow()
 
     def start_aimbot(self):
         self.aimbot.toogle_enabled()
