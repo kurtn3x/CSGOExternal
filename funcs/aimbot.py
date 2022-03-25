@@ -1,42 +1,115 @@
 from classes.Vector import Vector
 from math import *
 from offsets.offsets import *
+from random import randint
 
 
-def calc_distance(current_x, current_y, new_x, new_y):
-    distancex = new_x - current_x
-    if distancex < -89:
-        distancex += 360
-    elif distancex > 89:
-        distancex -= 360
-    if distancex < 0.0:
-        distancex = -distancex
+def calc_angle(local: Vector, enemy: Vector):
+    delta = Vector(0, 0, 0)
+    delta.x = local.x - enemy.x
+    delta.y = local.y - enemy.y
+    delta.z = local.z - enemy.z
 
-    distancey = new_y - current_y
-    if distancey < -180:
-        distancey += 360
-    elif distancey > 180:
-        distancey -= 360
-    if distancey < 0.0:
-        distancey = -distancey
+    hyp = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)
+    new = Vector(0, 0, 0)
+    new.x = asin(delta.z / hyp) * 57.295779513082
+    new.y = atan(delta.y / delta.x) * 57.295779513082
 
-    return distancex, distancey
+    if delta.x >= 0.0:
+        new.y += 180.0
+
+    return new
 
 
-def normalizeAngles(viewAngleX, viewAngleY):
-    if viewAngleX > 89:
-        viewAngleX -= 360
-    if viewAngleX < -89:
-        viewAngleX += 360
-    if viewAngleY > 180:
-        viewAngleY -= 360
-    if viewAngleY < -180:
-        viewAngleY += 360
-    return viewAngleX, viewAngleY
+def calc_distance(current: Vector, new: Vector):
+    distance = Vector(0, 0, 0)
+
+    distance.x = new.x - current.x
+
+    if distance.x < -89:
+        distance.x += 360
+    elif distance.x > 89:
+        distance.x -= 360
+    if distance.x < 0.0:
+        distance.x = -distance.x
+
+    distance.y = new.y - current.y
+    if distance.y < - 180:
+        distance.y += 360
+    elif distance.y > 180:
+        distance.y -= 360
+    if distance.y < 0.0:
+        distance.y = -distance.y
+    mag = sqrt(distance.x * distance.x + distance.y * distance.y)
+    return mag
+
+
+def get_best_target(pm, client, local_player, target_player, FOV):
+    olddist = 111111111
+    newdist = 0
+    best_target = None
+    for i in range(32):
+        target_player = pm.read_uint(client + dwEntityList + i * 0x10)
+        target_player = TargetPlayer(target_player, pm)
+
+        if not target_player.TargetPlayer:
+            continue
+
+        local_player.get_team()
+        target_player.get_team()
+        local_player.get_health()
+        target_player.get_health()
+        target_player.get_dormant()
+
+        if target_player.Team == local_player.Team:
+            continue
+        if target_player.Health < 1 or local_player.Health < 1:
+            continue
+        if not local_player.LocalPlayer:
+            continue
+        if local_player.LocalPlayer == target_player.TargetPlayer:
+            continue
+        if target_player.Dormant:
+            continue
+
+        local_player.get_view_offset()
+        local_player.get_origin()
+        target_player.get_view_offset()
+        target_player.get_spotted()
+        target_player.get_spotted_mask()
+        aimspot = 8
+        target_player.get_bone_matrix(aimspot)
+        localangle = local_player.ViewOffset
+        localpos = local_player.Origin
+        entitypos = target_player.BonePos
+        new = calc_angle(localpos, entitypos)
+        newdist = calc_distance(localangle, new)
+        if newdist < olddist and newdist < FOV:
+            olddist = newdist
+            best_target = target_player
+            targetpos = entitypos
+            r_localpos = localpos
+            r_targetpos = targetpos
+    if best_target is not None:
+        return best_target, r_localpos, r_targetpos
+    else:
+        return None, None, None
+
+
+def normalize_angles(angle: Vector):
+    if angle.x > 89:
+        angle.x -= 360
+    elif angle.x < -89:
+        angle.x += 360
+    if angle.y > 180:
+        angle.y -= 360
+    elif angle.y < -180:
+        angle.y += 360
+    return angle
 
 
 class TargetPlayer:
-    def __init__(self, TargetPlayer, aimspot, pm):
+    def __init__(self, TargetPlayer, pm):
         self.pm = pm
         self.TargetPlayer = TargetPlayer
         self.MaxPlayers = 32
@@ -48,10 +121,7 @@ class TargetPlayer:
         self.Dormant = 0
         self.SpottedMask = 0
         self.Spotted = 0
-        # Head, upper body, lower body, legs, arms
-        self.IndexToAimspot = {0: 8, 1: 5, 2: 3, 3: 1, 4: 0}
-        self.Aimspots = aimspot # [0, 0, 0, 0, 0]
-        self.Aimspot = 0
+
 
     def get_dormant(self):
         self.Dormant = self.pm.read_uint(self.TargetPlayer + m_bDormant)
@@ -75,33 +145,25 @@ class TargetPlayer:
     def get_team(self):
         self.Team = self.pm.read_int(self.TargetPlayer + m_iTeamNum)
 
-    def get_bone_matrix(self):
-
+    def get_bone_matrix(self, aimspot):
+        # Type 0 = Head, Upp Body, Low Body; 1= Arms; 2= Legs
+        # Type 0 is for head
+        # Type 1 is for upper - lower body
+        # type 2 is for arms
+        # type 3 is for legs
         bone_matrix = self.pm.read_int(self.TargetPlayer + m_dwBoneMatrix)
-        self.BonePos.x = self.pm.read_float(bone_matrix + 0x30 * self.Aimspot + 0x0C)
-        self.BonePos.y = self.pm.read_float(bone_matrix + 0x30 * self.Aimspot + 0x1C)
-        self.BonePos.z = self.pm.read_float(bone_matrix + 0x30 * self.Aimspot + 0x2C)
+        if aimspot == 8:
+            self.BonePos.x = self.pm.read_float(bone_matrix + 0x30 * aimspot + 0x0C)
+            self.BonePos.y = self.pm.read_float(bone_matrix + 0x30 * aimspot + 0x1C)
+            self.BonePos.z = self.pm.read_float(bone_matrix + 0x30 * aimspot + 0x2C)
+        elif aimspot == 6 or aimspot == 4:
+            self.BonePos.x = self.pm.read_float(bone_matrix + 0x30 * aimspot + 0x0C)
+            self.BonePos.y = self.pm.read_float(bone_matrix + 0x30 * aimspot + 0x1C)
+            self.BonePos.z = self.pm.read_float(bone_matrix + 0x30 * aimspot + 0x2C)
 
     def get_view_offset(self):
         self.ViewOffset = self.pm.read_int(self.TargetPlayer + m_vecViewOffset)
 
-    def get_best_bone(self, LocalPlayerOrigin):
-        delta = Vector(0, 0, 0)
-        best_hyp = 11111
-        best_spot = 0
-        for index, b in enumerate(self.Aimspots):
-            if b == 1:
-                # maybe rewrite to b>0 and just input aimspot nr, so the dic isnt needed
-                self.Aimspot = self.IndexToAimspot[index]
-                self.get_bone_matrix()
-                delta.x = LocalPlayerOrigin.x - self.BonePos.x
-                delta.y = LocalPlayerOrigin.y - self.BonePos.y
-                delta.z = LocalPlayerOrigin.z - self.BonePos.z
-                hyp = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)
-                if hyp < best_hyp:
-                    best_hyp = hyp
-                    best_spot = self.Aimspot
-        self.Aimspot = best_spot
 
 
 class LocalPlayer:
@@ -121,6 +183,9 @@ class LocalPlayer:
         self.ID = 0
         self.PunchX = 0
         self.PunchY = 0
+        # Head, upper body, lower body, legs, arms
+        self.IndexToAimspot = {0: 8, 1: 6, 2: 4, 3: 2, 4: 0}
+        self.Aimspot = 0
 
     def get(self):
         self.LocalPlayer = self.pm.read_uint(self.client + dwLocalPlayer)
@@ -157,100 +222,98 @@ class LocalPlayer:
         self.Distance = distance
         return distance
 
-    def aim_at(self, target_player, old_distance_x, old_distance_y, Spotted, FOV, RCS, Smooth, Smoothvalue):
-        self.get_view_offset()
-        self.get_origin()
-        target_player.get_view_offset()
-        target_player.get_spotted()
-        target_player.get_spotted_mask()
-        target_player.get_best_bone(self.Origin)
-        target_player.get_bone_matrix()
+    def get_crosshair_distance(self, angle_to):
+        diff = Vector()
+        diff.x = self.ViewOffset.x - angle_to.x
+        diff.y = self.ViewOffset.y - angle_to.y
+        diff.z = self.ViewOffset.z - angle_to.z
+        new_dist = sqrt(diff.x * diff.x + diff.y * diff.y + diff.z * diff.z)
 
-        delta = Vector(0, 0, 0)
-        delta.x = self.Origin.x - target_player.BonePos.x
-        delta.y = self.Origin.y - target_player.BonePos.y
-        delta.z = self.Origin.z - target_player.BonePos.z
+        print(new_dist)
 
-        hyp = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)
-        pitch = atan(delta.z / hyp) * 180 / pi
-        yaw = atan(delta.y / delta.x) * 180 / pi
+    def aim_at(self, Spotted, FOV, Aimspots, maxClients):
+        print(FOV)
+        olddist = 111111111
+        best_target = None
+        r_localpos = None
+        best_aimspot = {8: 1111, 6: 1111, 4: 1111, 1: 1111, 3: 1111}
+        for i in range(maxClients):
+            target_player = self.pm.read_uint(self.client + dwEntityList + i * 0x10)
+            target_player = TargetPlayer(target_player, self.pm)
 
-        if delta.x >= 0.0:
-            yaw += 180.0
+            if not target_player.TargetPlayer:
+                continue
 
-        pitch, yaw = normalizeAngles(pitch, yaw)
+            self.get_team()
+            target_player.get_team()
+            self.get_health()
+            target_player.get_health()
+            target_player.get_dormant()
 
-        distance_x, distance_y = calc_distance(self.ViewOffset.x, self.ViewOffset.y, pitch, yaw)
+            if target_player.Team == self.Team:
+                continue
+            if target_player.Health < 1 or self.Health < 1:
+                continue
+            if not self.LocalPlayer:
+                continue
+            if self.LocalPlayer == target_player.TargetPlayer:
+                continue
+            if target_player.Dormant:
+                continue
 
-        if -89 <= pitch <= 89 and -180 <= yaw <= 180:
-            if distance_x < FOV and distance_y < FOV:
-                if distance_x < old_distance_x and distance_y < old_distance_y:
-                    old_distance_x = distance_x
-                    old_distance_y = distance_y
-                    if RCS and self.pm.read_int(self.LocalPlayer + m_iShotsFired) > 1:
-                        if Spotted:
-                            self.get_id()
-                            if target_player.SpottedMask & (1 << self.ID):
-                                self.get_punch()
-                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles,
-                                                    pitch - (self.PunchX * 2))
-                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4,
-                                                    yaw - (self.PunchY * 2))
-                                return old_distance_x, old_distance_y
+            self.get_view_offset()
+            self.get_origin()
+            target_player.get_view_offset()
+            target_player.get_spotted()
+            target_player.get_spotted_mask()
+            # Spotted
+            if Spotted:
+                self.get_id()
+                if target_player.SpottedMask & (1 << self.ID):
+                    for x, f in enumerate(Aimspots):
+                        if f == 1:
+                            target_player.get_bone_matrix(self.IndexToAimspot[x])
+                            localangle = self.ViewOffset
+                            localpos = self.Origin
+                            entitypos = target_player.BonePos
+                            new = calc_angle(localpos, entitypos)
+                            newdist = calc_distance(localangle, new)
+                            if newdist < olddist and newdist < FOV:
+                                aimspot = self.IndexToAimspot[x]
+                                olddist = newdist
+                                best_target = target_player
+                                r_localpos = localpos
+                                if best_aimspot[aimspot] > newdist:
+                                    best_aimspot[aimspot] = newdist
+            else:
+                for x, f in enumerate(Aimspots):
+                    if f == 1:
+                        target_player.get_bone_matrix(self.IndexToAimspot[x])
+                        localangle = self.ViewOffset
+                        localpos = self.Origin
+                        entitypos = target_player.BonePos
+                        new = calc_angle(localpos, entitypos)
+                        newdist = calc_distance(localangle, new)
+                        if newdist < olddist and newdist < FOV:
+                            aimspot = self.IndexToAimspot[x]
+                            olddist = newdist
+                            best_target = target_player
+                            r_localpos = localpos
+                            if best_aimspot[aimspot] > newdist:
+                                best_aimspot[aimspot] = newdist
+        if best_target is not None:
+            lowest = 11111
+            for x in best_aimspot:
+                if best_aimspot[x] < lowest:
+                    lowest = best_aimspot[x]
+                    b_aimspot = x
+            best_target.get_bone_matrix(b_aimspot)
+            r_targetpos = best_target.BonePos
 
-                        else:
-                            self.get_punch()
-                            self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles,
-                                                pitch - (self.PunchX * 2))
-                            self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4,
-                                                yaw - (self.PunchY * 2))
-                            return old_distance_x, old_distance_y
-
-                    else:
-                        if Spotted:
-                            if target_player.SpottedMask & (1 << self.ID):
-                                self.get_punch()
-                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles,
-                                                    pitch - (self.PunchX * 2))
-                                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4,
-                                                    yaw - (self.PunchY * 2))
-                                return old_distance_x, old_distance_y
-                        else:
-                            self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
-                            self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
-                            return old_distance_x, old_distance_y
-
-    # delta = Vector(0, 0, 0)
-    # delta.x = self.Origin.x - target_player.BonePos.x
-    # delta.y = self.Origin.y - target_player.BonePos.y
-    # delta.z = self.Origin.z - target_player.BonePos.z
-    # hyp = sqrt(delta.x * delta.x + delta.y * delta.y + delta.z * delta.z)
-    # pitch = atan(delta.z / hyp) * 180 / pi
-    # yaw = atan(delta.y / delta.x) * 180 / pi
-    #
-    # if delta.x >= 0.0:
-    #     yaw += 180.0
-    # pitch, yaw = normalizeAngles(pitch, yaw)
-    # closest_to_crosshair = True
-    # if closest_to_crosshair:
-    #     distance_x, distance_y = calc_distance(self.ViewOffset.x, self.ViewOffset.y, pitch, yaw)
-    #     if distance_x < fov and distance_y < fov:
-    #         if -89 <= pitch <= 89 and -180 <= yaw <= 180:
-    #             self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
-    #             self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
-    # else:
-    #     currentDistance = self.get_distance(target_player.Origin)
-    #     if currentDistance < closestDistance:
-    #         closestDistance = currentDistance
-    #         if -89 <= pitch <= 89 and -180 <= yaw <= 180 and self.Distance:
-    #             if OldDelta.x == target_player.BonePos.x and OldDelta.y == target_player.BonePos.y:
-    #                 return closestDistance, Vector(target_player.BonePos.x, target_player.BonePos.y, target_player.BonePos.z)
-    #             else:
-    #                 distance_x, distance_y = calc_distance(self.ViewOffset.x, self.ViewOffset.y, pitch, yaw)
-    #                 if distance_x < fov and distance_y < fov:
-    #                     NewDelta = Vector(target_player.BonePos.x, target_player.BonePos.y, target_player.BonePos.z)
-    #                     self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
-    #                     self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
-    #                     self.Yaw = yaw
-    #                     self.Pitch = pitch
-    #                     return closestDistance, NewDelta
+            unnormal = calc_angle(r_localpos, r_targetpos)
+            normal = normalize_angles(unnormal)
+            pitch = normal.x
+            yaw = normal.y
+            if -89 <= pitch <= 89 and -180 <= yaw <= 180:
+                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
+                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)

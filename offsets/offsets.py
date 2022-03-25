@@ -27,3 +27,4 @@ dwForceJump = 0x5278DDC
 dwForceLeft = 0x31FF378
 dwForceRight = 0x31FF384
 m_fFlags = 0x104
+dwClientState_State = 0x108
