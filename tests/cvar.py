@@ -1,6 +1,7 @@
+from ctypes import *
 import platform
 import math
-from ctypes import *
+
 ntdll = windll.ntdll
 k32 = windll.kernel32
 u32 = windll.user32
@@ -256,9 +257,18 @@ class ConVar:
             a0 = mem.read_i32(a0 + 0x4)
         raise Exception("ConVar [" + name + "] not found!")
 
+    def r_address(self):
+        return self.address
+
     def get_int(self):
         a0 = c_int32()
         a1 = mem.read_i32(self.address + 0x30) ^ self.address
+        ntdll.memcpy(pointer(a0), pointer(c_int32(a1)), 4)
+        return a0.value
+
+    def write_int(self, val):
+        a0 = c_int32()
+        a1 = mem.write_i16(self.address + 0x30, val)
         ntdll.memcpy(pointer(a0), pointer(c_int32(a1)), 4)
         return a0.value
 
@@ -267,19 +277,6 @@ class ConVar:
         a1 = mem.read_i32(self.address + 0x2C) ^ self.address
         ntdll.memcpy(pointer(a0), pointer(c_int32(a1)), 4)
         return a0.value
-
-
-class InterfaceList:
-    def __init__(self):
-        table = InterfaceTable('client.dll')
-        self.client = table.get_interface('VClient')
-        self.entity = table.get_interface('VClientEntityList')
-        table = InterfaceTable('engine.dll')
-        self.engine = table.get_interface('VEngineClient')
-        table = InterfaceTable('vstdlib.dll')
-        self.cvar = table.get_interface('VEngineCvar')
-        table = InterfaceTable('inputsystem.dll')
-        self.input = table.get_interface('InputSystemVersion')
 
 
 class NetVarList:
@@ -316,7 +313,7 @@ class NetVarList:
         self.dwButton = mem.read_i32(vt.input.function(28) + 0xC1 + 2)
         if g_glow:
             self.dwGlowObjectManager = mem.find_pattern("client.dll",
-                    b'\xA1\x00\x00\x00\x00\xA8\x01\x75\x4B', "x????xxxx")
+                                                        b'\xA1\x00\x00\x00\x00\xA8\x01\x75\x4B', "x????xxxx")
             self.dwGlowObjectManager = mem.read_i32(self.dwGlowObjectManager + 1) + 4
 
 
@@ -395,246 +392,26 @@ class Engine:
         return mem.read_i8(nv.dwClientState + nv.dwState) >> 2
 
 
-class Entity:
-    @staticmethod
-    def get_client_entity(index):
-        return Player(mem.read_i32(nv.dwEntityList + index * 0x10))
+class InterfaceList:
+    def __init__(self):
+        table = InterfaceTable('client.dll')
+        self.client = table.get_interface('VClient')
+        self.entity = table.get_interface('VClientEntityList')
+        table = InterfaceTable('engine.dll')
+        self.engine = table.get_interface('VEngineClient')
+        table = InterfaceTable('vstdlib.dll')
+        self.cvar = table.get_interface('VEngineCvar')
+        table = InterfaceTable('inputsystem.dll')
+        self.input = table.get_interface('InputSystemVersion')
 
 
-class InputSystem:
-    @staticmethod
-    def is_button_down(button):
-        a0 = mem.read_i32(vt.input.table + ((button >> 5) * 4) + nv.dwButton)
-        return (a0 >> (button & 31)) & 1
-
-
-class Math:
-    @staticmethod
-    def sin_cos(radians):
-        return [math.sin(radians), math.cos(radians)]
-
-    @staticmethod
-    def rad2deg(x):
-        return x * 3.141592654
-
-    @staticmethod
-    def deg2rad(x):
-        return x * 0.017453293
-
-    @staticmethod
-    def angle_vec(angles):
-        s = Math.sin_cos(Math.deg2rad(angles.x))
-        y = Math.sin_cos(Math.deg2rad(angles.y))
-        return Vector3(s[1] * y[1], s[1] * y[0], -s[0])
-
-    @staticmethod
-    def vec_normalize(vec):
-        radius = 1.0 / (math.sqrt(vec.x * vec.x + vec.y * vec.y + vec.z * vec.z) + 1.192092896e-07)
-        vec.x *= radius
-        vec.y *= radius
-        vec.z *= radius
-        return vec
-
-    @staticmethod
-    def vec_angles(forward):
-        if forward.y == 0.00 and forward.x == 0.00:
-            yaw = 0
-            pitch = 270.0 if forward.z > 0.00 else 90.0
-        else:
-            yaw = math.atan2(forward.y, forward.x) * 57.295779513
-            if yaw < 0.00:
-                yaw += 360.0
-            tmp = math.sqrt(forward.x * forward.x + forward.y * forward.y)
-            pitch = math.atan2(-forward.z, tmp) * 57.295779513
-            if pitch < 0.00:
-                pitch += 360.0
-        return Vector3(pitch, yaw, 0.00)
-
-    @staticmethod
-    def vec_clamp(v):
-        if 89.0 < v.x <= 180.0:
-            v.x = 89.0
-        if v.x > 180.0:
-            v.x -= 360.0
-        if v.x < -89.0:
-            v.x = -89.0
-        v.y = math.fmod(v.y + 180.0, 360.0) - 180.0
-        v.z = 0.00
-        return v
-
-    @staticmethod
-    def vec_dot(v0, v1):
-        return v0.x * v1.x + v0.y * v1.y + v0.z * v1.z
-
-    @staticmethod
-    def vec_length(v):
-        return v.x * v.x + v.y * v.y + v.z * v.z
-
-    @staticmethod
-    def get_fov(va, angle):
-        a0 = Math.angle_vec(va)
-        a1 = Math.angle_vec(angle)
-        return Math.rad2deg(math.acos(Math.vec_dot(a0, a1) / Math.vec_length(a0)))
-
-
-def get_target_angle(local_p, target, bone_id):
-    m = target.get_bone_pos(bone_id)
-    c = local_p.get_eye_pos()
-    c.x = m.x - c.x
-    c.y = m.y - c.y
-    c.z = m.z - c.z
-    c = Math.vec_angles(Math.vec_normalize(c))
-    if g_aimbot_rcs and local_p.get_shots_fired() > 1:
-        p = local_p.get_vec_punch()
-        c.x -= p.x * 2.0
-        c.y -= p.y * 2.0
-        c.z -= p.z * 2.0
-    return Math.vec_clamp(c)
-
-
-_target = Player(0)
-_target_bone = 0
-_bones = [5, 4, 3, 0, 7, 8]
-
-
-def target_set(target):
-    global _target
-    _target = target
-
-
-def get_best_target(va, local_p):
-    global _target_bone
-    a0 = 9999.9
-    for i in range(1, Engine.get_max_clients()):
-        entity = Entity.get_client_entity(i)
-        if not entity.is_valid():
-            continue
-        if not mp_teammates_are_enemies.get_int() and local_p.get_team_num() == entity.get_team_num():
-            continue
-        if g_aimbot_head:
-            fov = Math.get_fov(va, get_target_angle(local_p, entity, 8))
-            if fov < a0:
-                a0 = fov
-                target_set(entity)
-                _target_bone = 8
-        else:
-            for j in range(0, _bones.__len__()):
-                fov = Math.get_fov(va, get_target_angle(local_p, entity, _bones[j]))
-                if fov < a0:
-                    a0 = fov
-                    target_set(entity)
-                    _target_bone = _bones[j]
-    return a0 != 9999
-
-
-def aim_at_target(sensitivity, va, angle):
-    global g_current_tick
-    global g_previous_tick
-    y = va.x - angle.x
-    x = va.y - angle.y
-    if y > 89.0:
-        y = 89.0
-    elif y < -89.0:
-        y = -89.0
-    if x > 180.0:
-        x -= 360.0
-    elif x < -180.0:
-        x += 360.0
-    if math.fabs(x) / 180.0 >= g_aimbot_fov:
-        target_set(Player(0))
-        return
-    if math.fabs(y) / 89.0 >= g_aimbot_fov:
-        target_set(Player(0))
-        return
-    x = (x / sensitivity) / 0.022
-    y = (y / sensitivity) / -0.022
-    print(sensitivity)
-    if g_aimbot_smooth > 1.00:
-        sx = 0.00
-        sy = 0.00
-        if sx < x:
-            sx += 1.0 + (x / g_aimbot_smooth)
-        elif sx > x:
-            sx -= 1.0 - (x / g_aimbot_smooth)
-        if sy < y:
-            sy += 1.0 + (y / g_aimbot_smooth)
-        elif sy > y:
-            sy -= 1.0 - (y / g_aimbot_smooth)
-    else:
-        sx = x
-        sy = y
-    if g_current_tick - g_previous_tick > 0:
-        g_previous_tick = g_current_tick
-        u32.mouse_event(0x0001, int(sx), int(sy), 0, 0)
-
-g_aimbot = False
 if __name__ == "__main__":
-    if platform.architecture()[0] != '64bit':
-        print('[!]64bit python required')
-        exit(0)
-    try:
-        mem = Process('csgo.exe')
-        vt = InterfaceList()
-        nv = NetVarList()
-        _sensitivity = ConVar('sensitivity')
-        mp_teammates_are_enemies = ConVar('mp_teammates_are_enemies')
-        sky = ConVar('r_3dsky')
-        x = sky.get_int()
-        print(x)
-    except Exception as e:
-        print(e)
-        exit(0)
-    while mem.is_running() and not InputSystem.is_button_down(g_exit_key):
-        k32.Sleep(1)
-        if Engine.is_in_game():
-            try:
-                self = Entity.get_client_entity(Engine.get_local_player())
-                fl_sensitivity = _sensitivity.get_float()
-                view_angle = Engine.get_view_angles()
-                if g_glow:
-                    glow_pointer = mem.read_i32(nv.dwGlowObjectManager)
-                    for i in range(0, Engine.get_max_clients()):
-                        entity = Entity.get_client_entity(i)
-                        if not entity.is_valid():
-                            continue
-                        if not mp_teammates_are_enemies.get_int() and self.get_team_num() == entity.get_team_num():
-                            continue
-                        entity_health = entity.get_health() / 100.0
-                        index = mem.read_i32(entity.address + nv.m_iGlowIndex) * 0x38
-                        mem.write_float(glow_pointer + index + 0x08, 1.0 - entity_health)  # r
-                        mem.write_float(glow_pointer + index + 0x0C, entity_health)        # g
-                        mem.write_float(glow_pointer + index + 0x10, 0.0)                  # b
-                        mem.write_float(glow_pointer + index + 0x14, 0.8)                  # a
-                        mem.write_i8(glow_pointer + index + 0x28, 1)
-                        mem.write_i8(glow_pointer + index + 0x29, 0)
-                if InputSystem.is_button_down(g_triggerbot_key):
-                    cross_id = self.get_cross_index()
-                    if cross_id == 0:
-                        continue
-                    cross_target = Entity.get_client_entity(cross_id - 1)
-                    if self.get_team_num() != cross_target.get_team_num() and cross_target.get_health() > 0:
-                        u32.mouse_event(0x0002, 0, 0, 0, 0)
-                        k32.Sleep(50)
-                        u32.mouse_event(0x0004, 0, 0, 0, 0)
-                if g_aimbot:
-                    g_current_tick = self.get_tick_count()
-                    if not _target.is_valid() and not get_best_target(view_angle, self):
-                        continue
-                    aim_at_target(fl_sensitivity, view_angle, get_target_angle(self, _target, _target_bone))
-                else:
-                    target_set(Player(0))
-                if g_rcs:
-                    current_punch = self.get_vec_punch()
-                    if self.get_shots_fired() > 1:
-                        new_punch = Vector3(current_punch.x - g_old_punch.x,
-                                            current_punch.y - g_old_punch.y, 0)
-                        new_angle = Vector3(view_angle.x - new_punch.x * 2.0, view_angle.y - new_punch.y * 2.0, 0)
-                        u32.mouse_event(0x0001,
-                                        int(((new_angle.y - view_angle.y) / fl_sensitivity) / -0.022),
-                                        int(((new_angle.x - view_angle.x) / fl_sensitivity) / 0.022),
-                                        0, 0)
-                    g_old_punch = current_punch
-            except ValueError:
-                continue
-        else:
-            g_previous_tick = 0
+    mem = Process('csgo.exe')
+    vt = InterfaceList()
+    nv = NetVarList()
+    sky = ConVar('r_3dsky')
+
+
+
+
+

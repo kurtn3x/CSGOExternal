@@ -7,7 +7,7 @@ from settings.mainwindow import Ui_MainWindow
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from math import *
-from funcs.aimbot import normalizeAngles, calc_distance
+from funcs.aimbot import normalize_angles, calc_distance
 from ctypes import c_uint32, pointer
 
 
@@ -465,7 +465,7 @@ class Thread(QThread):
                                 if delta.x >= 0.0:
                                     yaw += 180.0
 
-                                pitch, yaw = normalizeAngles(pitch, yaw)
+                                pitch, yaw = normalize_angles(pitch, yaw)
                                 viewoff = self.get_vec_view()
                                 print(pitch, yaw)
 

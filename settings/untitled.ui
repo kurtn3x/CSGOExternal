@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>798</width>
-    <height>517</height>
+    <width>729</width>
+    <height>456</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -20,7 +20,7 @@
       <x>0</x>
       <y>0</y>
       <width>731</width>
-      <height>521</height>
+      <height>461</height>
      </rect>
     </property>
     <property name="palette">
@@ -451,7 +451,7 @@
      <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <property name="elideMode">
      <enum>Qt::ElideNone</enum>
@@ -519,11 +519,14 @@
      <widget class="QCheckBox" name="aimbotCheckBox">
       <property name="geometry">
        <rect>
-        <x>30</x>
+        <x>20</x>
         <y>10</y>
         <width>151</width>
         <height>31</height>
        </rect>
+      </property>
+      <property name="toolTip">
+       <string>Enable aimbot, required for this menu to work</string>
       </property>
       <property name="text">
        <string>Enable Aimbot</string>
@@ -534,9 +537,12 @@
        <rect>
         <x>70</x>
         <y>60</y>
-        <width>211</width>
+        <width>61</width>
         <height>31</height>
        </rect>
+      </property>
+      <property name="toolTip">
+       <string>you can also type in here</string>
       </property>
       <property name="text">
        <string>1</string>
@@ -577,6 +583,9 @@
         <height>31</height>
        </rect>
       </property>
+      <property name="toolTip">
+       <string>Only aim when in sight, aims trough walls otherwise </string>
+      </property>
       <property name="text">
        <string>Spotted</string>
       </property>
@@ -589,6 +598,9 @@
         <width>70</width>
         <height>17</height>
        </rect>
+      </property>
+      <property name="toolTip">
+       <string>RCS</string>
       </property>
       <property name="text">
        <string>RCS</string>
@@ -629,6 +641,9 @@
         <height>17</height>
        </rect>
       </property>
+      <property name="toolTip">
+       <string>Smooth</string>
+      </property>
       <property name="text">
        <string>Smooth</string>
       </property>
@@ -650,7 +665,7 @@
       <property name="geometry">
        <rect>
         <x>520</x>
-        <y>190</y>
+        <y>130</y>
         <width>161</width>
         <height>321</height>
        </rect>
@@ -663,7 +678,7 @@
       <property name="geometry">
        <rect>
         <x>540</x>
-        <y>310</y>
+        <y>260</y>
         <width>21</width>
         <height>17</height>
        </rect>
@@ -682,7 +697,7 @@
       <property name="geometry">
        <rect>
         <x>590</x>
-        <y>260</y>
+        <y>200</y>
         <width>21</width>
         <height>17</height>
        </rect>
@@ -701,7 +716,7 @@
       <property name="geometry">
        <rect>
         <x>590</x>
-        <y>320</y>
+        <y>260</y>
         <width>21</width>
         <height>17</height>
        </rect>
@@ -719,8 +734,8 @@
      <widget class="QCheckBox" name="legsCheckBox">
       <property name="geometry">
        <rect>
-        <x>590</x>
-        <y>390</y>
+        <x>570</x>
+        <y>360</y>
         <width>21</width>
         <height>17</height>
        </rect>
@@ -739,7 +754,7 @@
       <property name="geometry">
        <rect>
         <x>590</x>
-        <y>210</y>
+        <y>150</y>
         <width>21</width>
         <height>17</height>
        </rect>
@@ -757,8 +772,8 @@
      <widget class="QLineEdit" name="test1LineEdit">
       <property name="geometry">
        <rect>
-        <x>130</x>
-        <y>340</y>
+        <x>120</x>
+        <y>360</y>
         <width>141</width>
         <height>31</height>
        </rect>
@@ -782,7 +797,7 @@
        <rect>
         <x>50</x>
         <y>290</y>
-        <width>361</width>
+        <width>311</width>
         <height>21</height>
        </rect>
       </property>
@@ -814,16 +829,6 @@
        <number>1</number>
       </property>
      </widget>
-     <widget class="QLineEdit" name="smoothLineEdit">
-      <property name="geometry">
-       <rect>
-        <x>130</x>
-        <y>250</y>
-        <width>141</width>
-        <height>31</height>
-       </rect>
-      </property>
-     </widget>
      <widget class="QLabel" name="label_2">
       <property name="geometry">
        <rect>
@@ -840,7 +845,7 @@
      <widget class="QLabel" name="label_8">
       <property name="geometry">
        <rect>
-        <x>430</x>
+        <x>370</x>
         <y>290</y>
         <width>31</width>
         <height>21</height>
@@ -848,6 +853,32 @@
       </property>
       <property name="text">
        <string>100</string>
+      </property>
+     </widget>
+     <widget class="Line" name="line">
+      <property name="geometry">
+       <rect>
+        <x>470</x>
+        <y>130</y>
+        <width>16</width>
+        <height>381</height>
+       </rect>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+     </widget>
+     <widget class="QLabel" name="smoothLineEdit">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>250</y>
+        <width>81</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>1</string>
       </property>
      </widget>
     </widget>
@@ -858,7 +889,7 @@
      <widget class="QCheckBox" name="enableglowCheckBox">
       <property name="geometry">
        <rect>
-        <x>30</x>
+        <x>20</x>
         <y>20</y>
         <width>141</width>
         <height>21</height>
@@ -871,35 +902,22 @@
      <widget class="QCheckBox" name="fovchangerCheckBox">
       <property name="geometry">
        <rect>
-        <x>30</x>
-        <y>430</y>
+        <x>20</x>
+        <y>390</y>
         <width>131</width>
-        <height>17</height>
+        <height>21</height>
        </rect>
       </property>
       <property name="text">
        <string>FovChanger</string>
       </property>
      </widget>
-     <widget class="QLineEdit" name="fovchangerLineEdit">
-      <property name="geometry">
-       <rect>
-        <x>190</x>
-        <y>430</y>
-        <width>121</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>90</string>
-      </property>
-     </widget>
      <widget class="QSlider" name="fovchangerSlider">
       <property name="geometry">
        <rect>
-        <x>50</x>
-        <y>470</y>
-        <width>601</width>
+        <x>190</x>
+        <y>390</y>
+        <width>451</width>
         <height>22</height>
        </rect>
       </property>
@@ -916,14 +934,14 @@
        <enum>Qt::Horizontal</enum>
       </property>
       <property name="tickPosition">
-       <enum>QSlider::TicksAbove</enum>
+       <enum>QSlider::NoTicks</enum>
       </property>
      </widget>
      <widget class="QLabel" name="label_6">
       <property name="geometry">
        <rect>
-        <x>20</x>
-        <y>470</y>
+        <x>160</x>
+        <y>390</y>
         <width>21</width>
         <height>21</height>
        </rect>
@@ -935,8 +953,8 @@
      <widget class="QLabel" name="label_7">
       <property name="geometry">
        <rect>
-        <x>660</x>
-        <y>460</y>
+        <x>650</x>
+        <y>378</y>
         <width>31</width>
         <height>41</height>
        </rect>
@@ -975,46 +993,7 @@
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>190</y>
-        <width>691</width>
-        <height>16</height>
-       </rect>
-      </property>
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_9">
-      <property name="geometry">
-       <rect>
-        <x>40</x>
-        <y>90</y>
-        <width>71</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Settings</string>
-      </property>
-     </widget>
-     <widget class="QCheckBox" name="checkBox_3">
-      <property name="geometry">
-       <rect>
-        <x>40</x>
-        <y>130</y>
-        <width>91</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Spotted</string>
-      </property>
-     </widget>
-     <widget class="Line" name="line_5">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>410</y>
+        <y>100</y>
         <width>691</width>
         <height>16</height>
        </rect>
@@ -1026,8 +1005,8 @@
      <widget class="QCheckBox" name="enablechamsCheckBox">
       <property name="geometry">
        <rect>
-        <x>30</x>
-        <y>220</y>
+        <x>20</x>
+        <y>140</y>
         <width>141</width>
         <height>21</height>
        </rect>
@@ -1040,7 +1019,7 @@
       <property name="geometry">
        <rect>
         <x>180</x>
-        <y>220</y>
+        <y>140</y>
         <width>141</width>
         <height>21</height>
        </rect>
@@ -1053,13 +1032,256 @@
       <property name="geometry">
        <rect>
         <x>180</x>
-        <y>260</y>
+        <y>180</y>
         <width>141</width>
         <height>21</height>
        </rect>
       </property>
       <property name="text">
        <string>Enemy</string>
+      </property>
+     </widget>
+     <widget class="Line" name="line_6">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>220</y>
+        <width>691</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="handmodelComboBox">
+      <property name="geometry">
+       <rect>
+        <x>150</x>
+        <y>255</y>
+        <width>251</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="toolTip">
+       <string>Handmodel Picker</string>
+      </property>
+      <item>
+       <property name="text">
+        <string>Default</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>New Item</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>New Item</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>New Item</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>New Item</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>New Item</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>New Item</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>New Item</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>New Item</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>New Item</string>
+       </property>
+      </item>
+      <item>
+       <property name="text">
+        <string>New Item</string>
+       </property>
+      </item>
+     </widget>
+     <widget class="QLabel" name="label_10">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>250</y>
+        <width>111</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Handmodel</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="enablenightmodeCheckBox">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>320</y>
+        <width>181</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="toolTip">
+       <string>bad nightmode</string>
+      </property>
+      <property name="text">
+       <string>Enable Nightmode</string>
+      </property>
+     </widget>
+     <widget class="QSlider" name="nightmodeSlider">
+      <property name="geometry">
+       <rect>
+        <x>260</x>
+        <y>325</y>
+        <width>341</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="toolTip">
+       <string>nightmode brightness</string>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+     <widget class="QLabel" name="glowteamcolorLabel">
+      <property name="geometry">
+       <rect>
+        <x>270</x>
+        <y>11</y>
+        <width>81</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="glowenemycolorLabel">
+      <property name="geometry">
+       <rect>
+        <x>270</x>
+        <y>46</y>
+        <width>81</width>
+        <height>51</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="colorpickerGlowTeam">
+      <property name="geometry">
+       <rect>
+        <x>380</x>
+        <y>20</y>
+        <width>101</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>colorpicker</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="colorpickerGlowEnemy">
+      <property name="geometry">
+       <rect>
+        <x>380</x>
+        <y>60</y>
+        <width>101</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>colorpicker</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="fovchangerLineEdit">
+      <property name="geometry">
+       <rect>
+        <x>380</x>
+        <y>420</y>
+        <width>31</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>90</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="glowenemycolorLabel_2">
+      <property name="geometry">
+       <rect>
+        <x>270</x>
+        <y>121</y>
+        <width>81</width>
+        <height>61</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="glowenemycolorLabel_3">
+      <property name="geometry">
+       <rect>
+        <x>270</x>
+        <y>162</y>
+        <width>81</width>
+        <height>61</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="colorpickerChamsTeam">
+      <property name="geometry">
+       <rect>
+        <x>380</x>
+        <y>135</y>
+        <width>101</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>colorpicker</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="colorpickerChamsEnemy">
+      <property name="geometry">
+       <rect>
+        <x>380</x>
+        <y>175</y>
+        <width>101</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>colorpicker</string>
       </property>
      </widget>
     </widget>

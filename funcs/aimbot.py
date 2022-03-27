@@ -1,7 +1,6 @@
 from classes.Vector import Vector
 from math import *
 from offsets.offsets import *
-from random import randint
 
 
 def calc_angle(local: Vector, enemy: Vector):
@@ -44,58 +43,6 @@ def calc_distance(current: Vector, new: Vector):
     return mag
 
 
-def get_best_target(pm, client, local_player, target_player, FOV):
-    olddist = 111111111
-    newdist = 0
-    best_target = None
-    for i in range(32):
-        target_player = pm.read_uint(client + dwEntityList + i * 0x10)
-        target_player = TargetPlayer(target_player, pm)
-
-        if not target_player.TargetPlayer:
-            continue
-
-        local_player.get_team()
-        target_player.get_team()
-        local_player.get_health()
-        target_player.get_health()
-        target_player.get_dormant()
-
-        if target_player.Team == local_player.Team:
-            continue
-        if target_player.Health < 1 or local_player.Health < 1:
-            continue
-        if not local_player.LocalPlayer:
-            continue
-        if local_player.LocalPlayer == target_player.TargetPlayer:
-            continue
-        if target_player.Dormant:
-            continue
-
-        local_player.get_view_offset()
-        local_player.get_origin()
-        target_player.get_view_offset()
-        target_player.get_spotted()
-        target_player.get_spotted_mask()
-        aimspot = 8
-        target_player.get_bone_matrix(aimspot)
-        localangle = local_player.ViewOffset
-        localpos = local_player.Origin
-        entitypos = target_player.BonePos
-        new = calc_angle(localpos, entitypos)
-        newdist = calc_distance(localangle, new)
-        if newdist < olddist and newdist < FOV:
-            olddist = newdist
-            best_target = target_player
-            targetpos = entitypos
-            r_localpos = localpos
-            r_targetpos = targetpos
-    if best_target is not None:
-        return best_target, r_localpos, r_targetpos
-    else:
-        return None, None, None
-
-
 def normalize_angles(angle: Vector):
     if angle.x > 89:
         angle.x -= 360
@@ -121,7 +68,6 @@ class TargetPlayer:
         self.Dormant = 0
         self.SpottedMask = 0
         self.Spotted = 0
-
 
     def get_dormant(self):
         self.Dormant = self.pm.read_uint(self.TargetPlayer + m_bDormant)
@@ -165,7 +111,6 @@ class TargetPlayer:
         self.ViewOffset = self.pm.read_int(self.TargetPlayer + m_vecViewOffset)
 
 
-
 class LocalPlayer:
     def __init__(self, pm, client, engine_pointer, engine):
         self.Origin = Vector(0, 0, 0)
@@ -186,6 +131,9 @@ class LocalPlayer:
         # Head, upper body, lower body, legs, arms
         self.IndexToAimspot = {0: 8, 1: 6, 2: 4, 3: 2, 4: 0}
         self.Aimspot = 0
+        self.n = 0
+        self.s = 0
+        self.tmp = 1
 
     def get(self):
         self.LocalPlayer = self.pm.read_uint(self.client + dwLocalPlayer)
@@ -222,17 +170,7 @@ class LocalPlayer:
         self.Distance = distance
         return distance
 
-    def get_crosshair_distance(self, angle_to):
-        diff = Vector()
-        diff.x = self.ViewOffset.x - angle_to.x
-        diff.y = self.ViewOffset.y - angle_to.y
-        diff.z = self.ViewOffset.z - angle_to.z
-        new_dist = sqrt(diff.x * diff.x + diff.y * diff.y + diff.z * diff.z)
-
-        print(new_dist)
-
-    def aim_at(self, Spotted, FOV, Aimspots, maxClients):
-        print(FOV)
+    def aim_at(self, Spotted, FOV, Aimspots, maxClients, Smooth, Smoothval):
         olddist = 111111111
         best_target = None
         r_localpos = None
@@ -314,6 +252,25 @@ class LocalPlayer:
             normal = normalize_angles(unnormal)
             pitch = normal.x
             yaw = normal.y
-            if -89 <= pitch <= 89 and -180 <= yaw <= 180:
-                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
-                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
+
+            if Smooth:
+                diff = Vector(0, 0, 0)
+                diff.x = normal.x - self.ViewOffset.x
+                diff.y = normal.y - self.ViewOffset.y
+                diff.z = normal.z - self.ViewOffset.z
+                Smoothval = Smoothval
+                normalize_angles(diff)
+                Dist = sqrt(diff.x * diff.x + diff.y * diff.y + diff.z * diff.z)
+                # distance * smoohval macht es sehr langsam fixen
+                self.n = Dist * Smoothval
+                AddAngl = Vector(diff.x / (self.n - self.s), diff.y / (self.n - self.s), diff.z / (self.n - self.s))
+                writeang = Vector(self.ViewOffset.x + AddAngl.x, self.ViewOffset.y + AddAngl.y, 0)
+                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, writeang.x)
+                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, writeang.y)
+
+
+            else:
+                if -89 <= pitch <= 89 and -180 <= yaw <= 180:
+                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
+                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
+
