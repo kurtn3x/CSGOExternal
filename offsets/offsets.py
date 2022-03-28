@@ -1,4 +1,3 @@
-radian = 57.295779513082
 m_iShotsFired = 0x103E0
 m_iHealth = 0x100
 dwEntityList = 0x4DCEEAC
@@ -41,3 +40,4 @@ m_bUseCustomAutoExposureMax = 0x9D9
 m_bUseCustomAutoExposureMin = 0x9D8
 m_flCustomAutoExposureMax = 0x9E0
 m_flCustomAutoExposureMin = 0x9DC
+model_ambient_min = 0x59003C

@@ -1,4 +1,4 @@
-from classes.Vector import Vector
+from classes.Classes import Vector
 from math import *
 from offsets.offsets import *
 
@@ -134,6 +134,12 @@ class LocalPlayer:
         self.n = 0
         self.s = 0
         self.tmp = 1
+        self.curr_target = None
+        self.curr_distance = None
+        self.first = 1
+        self.dist = Vector(0, 0, 0)
+        self.Aimtime = 1.0
+        self.CurrAimtime = 0
 
     def get(self):
         self.LocalPlayer = self.pm.read_uint(self.client + dwLocalPlayer)
@@ -171,11 +177,12 @@ class LocalPlayer:
         return distance
 
     def aim_at(self, Spotted, FOV, Aimspots, maxClients, Smooth, Smoothval):
+        print(self.LocalPlayer)
         olddist = 111111111
         best_target = None
         r_localpos = None
         best_aimspot = {8: 1111, 6: 1111, 4: 1111, 1: 1111, 3: 1111}
-        for i in range(maxClients):
+        for i in range(0, maxClients):
             target_player = self.pm.read_uint(self.client + dwEntityList + i * 0x10)
             target_player = TargetPlayer(target_player, self.pm)
 
@@ -258,16 +265,14 @@ class LocalPlayer:
                 diff.x = normal.x - self.ViewOffset.x
                 diff.y = normal.y - self.ViewOffset.y
                 diff.z = normal.z - self.ViewOffset.z
-                Smoothval = Smoothval
                 normalize_angles(diff)
-                Dist = sqrt(diff.x * diff.x + diff.y * diff.y + diff.z * diff.z)
-                # distance * smoohval macht es sehr langsam fixen
-                self.n = Dist * Smoothval
-                AddAngl = Vector(diff.x / (self.n - self.s), diff.y / (self.n - self.s), diff.z / (self.n - self.s))
-                writeang = Vector(self.ViewOffset.x + AddAngl.x, self.ViewOffset.y + AddAngl.y, 0)
-                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, writeang.x)
-                self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, writeang.y)
-
+                cocktest = sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z)
+                print(cocktest)
+                pitch = self.ViewOffset.x + diff.x / Smoothval
+                yaw = self.ViewOffset.y + diff.y / Smoothval
+                if -89 <= pitch <= 89 and -180 <= yaw <= 180:
+                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles, pitch)
+                    self.pm.write_float(self.engine_pointer + dwClientState_ViewAngles + 0x4, yaw)
 
             else:
                 if -89 <= pitch <= 89 and -180 <= yaw <= 180:

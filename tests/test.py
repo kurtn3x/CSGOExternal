@@ -52,6 +52,8 @@ m_bUseCustomAutoExposureMax = 0x9D9
 m_bUseCustomAutoExposureMin = 0x9D8
 m_flCustomAutoExposureMax = 0x9E0
 m_flCustomAutoExposureMin = 0x9DC
+m_bUseCustomBloomScale = 0x9DA
+m_flCustomBloomScale = 0x9E4
 
 pm = pymem.Pymem("csgo.exe")
 client = pymem.process.module_from_name(pm.process_handle, "client.dll").lpBaseOfDll
@@ -61,46 +63,11 @@ local_player = pm.read_uint(client + dwLocalPlayer)
 PatternDict = {}
 
 
-def get_sig(pm, modulename, pattern, extra=0, offset=0,
-            relative=True):  # Get_Sig Function that will let us pattern scan for offsets
-    if offset == 0:  # very wierd shit happening with the dwbSendPacketsOffset :)
-        module = pymem.process.module_from_name(pm.process_handle, modulename)
-        bytes = pm.read_bytes(module.lpBaseOfDll, module.SizeOfImage)
-        match = re.search(pattern, bytes).start()
-        res = match + extra
-        return res
-    module = pymem.process.module_from_name(pm.process_handle, modulename)
-    bytes = pm.read_bytes(module.lpBaseOfDll, module.SizeOfImage)
-    match = re.search(pattern, bytes).start()
-    non_relative = pm.read_int(module.lpBaseOfDll + match + offset) + extra
-    yes_relative = pm.read_int(module.lpBaseOfDll + match + offset) + extra - module.lpBaseOfDll
-    return "0x{:X}".format(yes_relative) if relative else "0x{:X}".format(non_relative)
 
 
-def transform_patterns():
-    response = requests.get("https://raw.githubusercontent.com/frk1/hazedumper/master/config.json").json()
-    for struct in response["signatures"]:
-        old = str(struct["pattern"])
-        new = old.replace("?", ".")
-        new = new.split(" ")
-        newone = ""
-        for element in new:
-            if element != ".":
-                element = r'\x' + element
-            newone = newone + element
-        PatternDict[struct["name"]] = newone
 
 
-def getClassID(pm, entity):
-    buf = pm.read_int(entity + 8)
-    buf = pm.read_int(buf + 2 * 4)
-    buf = pm.read_int(buf + 1)
-    buf = pm.read_int(buf + 20)
-    return
-
-
-transform_patterns()
-while True:
+# while True:
     # 0 no hands
     # 343 CT BLUE
     # 344 CT GREEN
@@ -115,41 +82,16 @@ while True:
     # 364 some blue jacket
     # 378 also gold watch
     # 381 white jacket
-    #
-    x = pm.write_int(local_player + 0x258, 381)
-    # print(x)
-
-import struct
-
-buf = 1084227584
-model_ambient = get_sig(pm, "engine.dll",
-                        bytes(PatternDict["model_ambient_min"], encoding="raw_unicode_escape"), 0,
-                        4)
-model_ambient = int(model_ambient, 0)
-# point = pm.read_int(engine + model_ambient - 44)
-# xored = buf ^ point
-# pm.write_int(engine + model_ambient, xored)
-
-# model_ambient = int(model_ambient, 0)
-
-def f2b(num):
-    return ''.join(bin(c).replace('0b', '').rjust(8, '0') for c in struct.pack('!f', num))
+# x = 0
+# while x < 10000:
+#     pm.write_int(local_player + 0x258, 381)
+#     x+=1
+while True:
+    state = pm.read_int(engine_pointer + dwClientState_State)
+    print(state)
 
 
-point = pm.read_int(engine + model_ambient - 44)
-brightness = 2
-addr = 0x12345678
-yourval = int(f2b(brightness), 2) ^ addr
-pm.write_int(local_player + 0x59003C, yourval)
-# while True:
-#     for i in range(0, 64):
-#         entity = pm.read_uint(client + dwEntityList + i * 0x10)
-#         if entity and entity != 0:
-#             entityTeam = pm.read_uint(entity + m_iTeamNum)
-#             pm.write_uchar(entity + 0x70, 0)
-#             pm.write_uchar(entity + 0x71, 255)
-#             pm.write_uchar(entity + 0x72, 0)
-#             pm.write_uchar(entity + 0x73, 255)
+
 
 
 

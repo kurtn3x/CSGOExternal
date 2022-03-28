@@ -1,5 +1,6 @@
 from offsets.offsets import *
 
+
 def Bhop(pm, client, player):
     force_jump = client + dwForceJump
     on_ground = pm.read_uint(player + m_fFlags)

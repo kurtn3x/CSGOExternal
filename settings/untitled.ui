@@ -451,7 +451,7 @@
      <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <property name="elideMode">
      <enum>Qt::ElideNone</enum>
@@ -805,7 +805,7 @@
        <number>1</number>
       </property>
       <property name="maximum">
-       <number>1000</number>
+       <number>100</number>
       </property>
       <property name="pageStep">
        <number>100</number>
@@ -839,7 +839,7 @@
        </rect>
       </property>
       <property name="text">
-       <string>0.1</string>
+       <string>1</string>
       </property>
      </widget>
      <widget class="QLabel" name="label_8">
@@ -881,6 +881,19 @@
        <string>1</string>
       </property>
      </widget>
+     <widget class="QPushButton" name="aimbotapplyButton">
+      <property name="geometry">
+       <rect>
+        <x>130</x>
+        <y>60</y>
+        <width>61</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Apply</string>
+      </property>
+     </widget>
     </widget>
     <widget class="QWidget" name="tab_2">
      <attribute name="title">
@@ -903,9 +916,9 @@
       <property name="geometry">
        <rect>
         <x>20</x>
-        <y>390</y>
+        <y>370</y>
         <width>131</width>
-        <height>21</height>
+        <height>41</height>
        </rect>
       </property>
       <property name="text">
@@ -915,9 +928,9 @@
      <widget class="QSlider" name="fovchangerSlider">
       <property name="geometry">
        <rect>
-        <x>190</x>
-        <y>390</y>
-        <width>451</width>
+        <x>260</x>
+        <y>380</y>
+        <width>391</width>
         <height>22</height>
        </rect>
       </property>
@@ -940,8 +953,8 @@
      <widget class="QLabel" name="label_6">
       <property name="geometry">
        <rect>
-        <x>160</x>
-        <y>390</y>
+        <x>220</x>
+        <y>380</y>
         <width>21</width>
         <height>21</height>
        </rect>
@@ -953,8 +966,8 @@
      <widget class="QLabel" name="label_7">
       <property name="geometry">
        <rect>
-        <x>650</x>
-        <y>378</y>
+        <x>660</x>
+        <y>370</y>
         <width>31</width>
         <height>41</height>
        </rect>
@@ -1045,94 +1058,13 @@
       <property name="geometry">
        <rect>
         <x>0</x>
-        <y>220</y>
+        <y>240</y>
         <width>691</width>
         <height>16</height>
        </rect>
       </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
-      </property>
-     </widget>
-     <widget class="QComboBox" name="handmodelComboBox">
-      <property name="geometry">
-       <rect>
-        <x>150</x>
-        <y>255</y>
-        <width>251</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="toolTip">
-       <string>Handmodel Picker</string>
-      </property>
-      <item>
-       <property name="text">
-        <string>Default</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>New Item</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>New Item</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>New Item</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>New Item</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>New Item</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>New Item</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>New Item</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>New Item</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>New Item</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>New Item</string>
-       </property>
-      </item>
-     </widget>
-     <widget class="QLabel" name="label_10">
-      <property name="geometry">
-       <rect>
-        <x>30</x>
-        <y>250</y>
-        <width>111</width>
-        <height>41</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Handmodel</string>
       </property>
      </widget>
      <widget class="QCheckBox" name="enablenightmodeCheckBox">
@@ -1145,23 +1077,29 @@
        </rect>
       </property>
       <property name="toolTip">
-       <string>bad nightmode</string>
+       <string>Makes the whole map brighter or darker</string>
       </property>
       <property name="text">
-       <string>Enable Nightmode</string>
+       <string>Map Brightness</string>
       </property>
      </widget>
      <widget class="QSlider" name="nightmodeSlider">
       <property name="geometry">
        <rect>
         <x>260</x>
-        <y>325</y>
-        <width>341</width>
+        <y>330</y>
+        <width>391</width>
         <height>22</height>
        </rect>
       </property>
       <property name="toolTip">
-       <string>nightmode brightness</string>
+       <string>Takes time to update. Wait a few sec after updating.</string>
+      </property>
+      <property name="minimum">
+       <number>1</number>
+      </property>
+      <property name="maximum">
+       <number>1500</number>
       </property>
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
@@ -1172,12 +1110,12 @@
        <rect>
         <x>270</x>
         <y>11</y>
-        <width>81</width>
+        <width>291</width>
         <height>41</height>
        </rect>
       </property>
       <property name="text">
-       <string>TextLabel</string>
+       <string>R: G: B:</string>
       </property>
      </widget>
      <widget class="QLabel" name="glowenemycolorLabel">
@@ -1185,18 +1123,18 @@
        <rect>
         <x>270</x>
         <y>46</y>
-        <width>81</width>
+        <width>301</width>
         <height>51</height>
        </rect>
       </property>
       <property name="text">
-       <string>TextLabel</string>
+       <string>R: G: B:</string>
       </property>
      </widget>
      <widget class="QPushButton" name="colorpickerGlowTeam">
       <property name="geometry">
        <rect>
-        <x>380</x>
+        <x>570</x>
         <y>20</y>
         <width>101</width>
         <height>31</height>
@@ -1209,7 +1147,7 @@
      <widget class="QPushButton" name="colorpickerGlowEnemy">
       <property name="geometry">
        <rect>
-        <x>380</x>
+        <x>570</x>
         <y>60</y>
         <width>101</width>
         <height>31</height>
@@ -1222,8 +1160,8 @@
      <widget class="QLabel" name="fovchangerLineEdit">
       <property name="geometry">
        <rect>
-        <x>380</x>
-        <y>420</y>
+        <x>150</x>
+        <y>380</y>
         <width>31</width>
         <height>21</height>
        </rect>
@@ -1232,37 +1170,37 @@
        <string>90</string>
       </property>
      </widget>
-     <widget class="QLabel" name="glowenemycolorLabel_2">
+     <widget class="QLabel" name="chamsteamcolorLabel">
       <property name="geometry">
        <rect>
         <x>270</x>
-        <y>121</y>
-        <width>81</width>
-        <height>61</height>
+        <y>130</y>
+        <width>301</width>
+        <height>41</height>
        </rect>
       </property>
       <property name="text">
-       <string>TextLabel</string>
+       <string>R: G: B:</string>
       </property>
      </widget>
-     <widget class="QLabel" name="glowenemycolorLabel_3">
+     <widget class="QLabel" name="chamsenemycolorLabel">
       <property name="geometry">
        <rect>
         <x>270</x>
-        <y>162</y>
-        <width>81</width>
-        <height>61</height>
+        <y>170</y>
+        <width>301</width>
+        <height>41</height>
        </rect>
       </property>
       <property name="text">
-       <string>TextLabel</string>
+       <string>R: G: B:</string>
       </property>
      </widget>
      <widget class="QPushButton" name="colorpickerChamsTeam">
       <property name="geometry">
        <rect>
-        <x>380</x>
-        <y>135</y>
+        <x>580</x>
+        <y>140</y>
         <width>101</width>
         <height>31</height>
        </rect>
@@ -1274,14 +1212,68 @@
      <widget class="QPushButton" name="colorpickerChamsEnemy">
       <property name="geometry">
        <rect>
-        <x>380</x>
-        <y>175</y>
+        <x>580</x>
+        <y>180</y>
         <width>101</width>
         <height>31</height>
        </rect>
       </property>
       <property name="text">
        <string>colorpicker</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="enablebrightchamsCheckbox">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>270</y>
+        <width>131</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="toolTip">
+       <string>Makes all Player models brighter</string>
+      </property>
+      <property name="text">
+       <string>Brightmodels</string>
+      </property>
+     </widget>
+     <widget class="QSlider" name="chamsbrightnessSlider">
+      <property name="geometry">
+       <rect>
+        <x>260</x>
+        <y>280</y>
+        <width>391</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="toolTip">
+       <string>Brightvalue</string>
+      </property>
+      <property name="maximum">
+       <number>100</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+     <widget class="QSlider" name="glowalphaSlider">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>60</y>
+        <width>121</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="maximum">
+       <number>10</number>
+      </property>
+      <property name="value">
+       <number>10</number>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
       </property>
      </widget>
     </widget>
@@ -1313,6 +1305,32 @@
       </property>
       <property name="text">
        <string>Autostrafe</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="nohandsCheckBox">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>150</y>
+        <width>121</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Nohands</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_9">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>230</y>
+        <width>91</width>
+        <height>51</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Config</string>
       </property>
      </widget>
     </widget>

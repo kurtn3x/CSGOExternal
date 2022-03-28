@@ -12,11 +12,26 @@ from offsets.offsets import *
 from keyboard import is_pressed
 from funcs.bunnyhop import Bhop, AutoStrafe
 from ctypes import windll
-from funcs.aimbot import Vector
 from funcs.rcs import rcse
+from classes.Classes import Vector, Color, f2b
 import re
 
 k32 = windll.kernel32
+
+
+class GamestateThread(QThread):
+    update_localplayer = pyqtSignal(bool)
+
+    def send_update(self):
+        self.update_localplayer.emit(True)
+
+    def run(self):
+        while True:
+            k32.Sleep(250)
+            game_state = pm.read_int(engine_pointer + dwClientState_State)
+            if game_state == 6:
+                local_player = pm.read_uint(client + dwLocalPlayer)
+                self.send_update()
 
 
 class WindowThread(QThread):
@@ -30,6 +45,7 @@ class WindowThread(QThread):
             k32.Sleep(50)
             if is_pressed('insert'):
                 self.send_signal()
+                k32.Sleep(200)
 
 
 class MainThread(QThread):
@@ -40,6 +56,8 @@ class MainThread(QThread):
         self.glow_manager = pm.read_int(client + dwGlowObjectManager)
         self.glow_team = 0
         self.glow_enemy = 0
+        self.glow_color_team = Color(0.0, 0.0, 255.0, 0.0)
+        self.glow_color_enemy = Color(255.0, 0.0, 0.0, 0.0)
 
         # Misc Settings
         self.bunnyhop_enabled = 0
@@ -49,6 +67,12 @@ class MainThread(QThread):
         # Put rcs here ?????
         self.rcs_enabled = 0
         self.nightmode_enabled = 0
+
+    def update_glow_color_team(self, color):
+        self.glow_color_team = color
+
+    def update_glow_color_enemy(self, color):
+        self.glow_color_enemy = color
 
     def toogle_glow(self):
         if self.glow_enabled:
@@ -92,14 +116,13 @@ class MainThread(QThread):
         else:
             self.nightmode_enabled = 1
 
-
     def run(self):
         oldpunch = Vector(0, 0, 0)
         newrcs = Vector(0, 0, 0)
         punch = Vector(0, 0, 0)
         rcs = Vector(0, 0, 0)
         while True:
-            time.sleep(0.00000001)
+            time.sleep(0.000000000001)
             if self.bunnyhop_enabled and is_pressed("space"):
                 Bhop(pm, client, local_player)
 
@@ -110,7 +133,8 @@ class MainThread(QThread):
 
             if self.glow_enabled:
                 glow(pm, client, self.glow_manager, pm.read_int(local_player + m_iTeamNum), self.glow_enemy,
-                     self.glow_team)
+                     self.glow_team, self.glow_color_team, self.glow_color_enemy, pm.read_int(engine_pointer +
+                                                                                              dwClientState_MaxPlayer))
 
             if self.rcs_enabled:
                 oldpunch = rcse(pm, local_player, engine_pointer, oldpunch, newrcs, punch, rcs)
@@ -120,8 +144,6 @@ class MainThread(QThread):
 
 
 class AimbotThread(QThread):
-    update_localpos = pyqtSignal(tuple)
-
     def __init__(self):
         super().__init__()
         self.FOV = 1
@@ -132,7 +154,7 @@ class AimbotThread(QThread):
         self.Smooth = 0
         self.Smoothvalue = 1
         self.IndexToAimspot = {0: 8, 1: 6, 2: 4, 3: 1, 4: 3}
-        # 8 6 4 1 3
+        self.local_player = LocalPlayer(pm, client, engine_pointer, engine)
 
     def update_fov(self, fov):
         self.FOV = fov
@@ -163,48 +185,18 @@ class AimbotThread(QThread):
     def change_smooth_value(self, val):
         self.Smoothvalue = val
 
+    def update_localplayer(self):
+        self.local_player.get()
+
     def run(self):
-        local_player = LocalPlayer(pm, client, engine_pointer, engine)
-        local_player.get()
-        s = 0
-        n = 0
+        self.local_player.get()
         while True:
-            time.sleep(0.000000001)
-            if is_in_game():
+            time.sleep(0.0000000000001)
+            if pm.read_int(engine_pointer + dwClientState_State) == 6:
                 if self.enabled:
-                    local_player.aim_at(self.Spotted, self.FOV, self.Aimspots, get_max_clients(), self.Smooth, self.Smoothvalue)
-
-
-def get_sig(pm, modulename, pattern, extra=0, offset=0,
-            relative=True):  # Get_Sig Function that will let us pattern scan for offsets
-    if offset == 0:  # very wierd shit happening with the dwbSendPacketsOffset :)
-        module = pymem.process.module_from_name(pm.process_handle, modulename)
-        bytes = pm.read_bytes(module.lpBaseOfDll, module.SizeOfImage)
-        match = re.search(pattern, bytes).start()
-        res = match + extra
-        return res
-    module = pymem.process.module_from_name(pm.process_handle, modulename)
-    bytes = pm.read_bytes(module.lpBaseOfDll, module.SizeOfImage)
-    match = re.search(pattern, bytes).start()
-    non_relative = pm.read_int(module.lpBaseOfDll + match + offset) + extra
-    yes_relative = pm.read_int(module.lpBaseOfDll + match + offset) + extra - module.lpBaseOfDll
-    return "0x{:X}".format(yes_relative) if relative else "0x{:X}".format(non_relative)
-
-import requests
-
-def transform_patterns():  # unfinished
-
-    response = requests.get("https://raw.githubusercontent.com/frk1/hazedumper/master/config.json").json()
-    for struct in response["signatures"]:
-        old = str(struct["pattern"])
-        new = old.replace("?", ".")
-        new = new.split(" ")
-        newone = ""
-        for element in new:
-            if element != ".":
-                element = r'\x' + element
-            newone = newone + element
-        PatternDict[struct["name"]] = newone
+                    self.local_player.aim_at(self.Spotted, self.FOV, self.Aimspots,
+                                             pm.read_int(engine_pointer + dwClientState_MaxPlayer), self.Smooth,
+                                             self.Smoothvalue)
 
 
 class MainWindow(QMainWindow):
@@ -212,27 +204,31 @@ class MainWindow(QMainWindow):
         super().__init__(*args, **kwargs)
         self.mainwindow_ui = Ui_MainWindow()
         self.mainwindow_ui.setupUi(self)
-        self.popups = []
         self.setAttribute(Qt.WA_TranslucentBackground, True)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        path = os.path.join("settings", "body.jpg")
+        self.mainwindow_ui.label_3.setPixmap(QPixmap(path))
+        self.popups = []
+
         self.WindowManager = WindowThread()
         self.WindowManager.start()
         self.WindowManager.update_progress.connect(self.open_close)
-        path = os.path.join("settings", "body.jpg")
-        self.mainwindow_ui.label_3.setPixmap(QPixmap(path))
+
         self.mainthread = MainThread(pm, client)
         self.mainthread.start()
 
         self.aimbot = AimbotThread()
         self.aimbot.start()
-        # Head, upper body, lower body, legs, arms
-        self.Aimspots = [0, 0, 0, 0, 0]
-        self.fovchanger_enabled = False
+
+        self.gamestate = GamestateThread()
+        self.gamestate.start()
+        self.gamestate.update_localplayer.connect(self.aimbot.update_localplayer)
 
         # Aimbot
         self.mainwindow_ui.aimbotCheckBox.stateChanged.connect(self.start_aimbot)
         self.mainwindow_ui.fovSlider.valueChanged.connect(self.update_aimbot_fov)
-        self.mainwindow_ui.fovLineEdit.textChanged.connect(self.fov_slider_set_value)
+        self.mainwindow_ui.aimbotapplyButton.clicked.connect(lambda: self.fov_slider_set_value(
+            self.mainwindow_ui.fovLineEdit.text()))
         self.mainwindow_ui.spottedCheckBox.stateChanged.connect(self.toogle_spotted)
         self.mainwindow_ui.rcsCheckBox.stateChanged.connect(self.toogle_rcs)
         self.mainwindow_ui.headCheckBox.stateChanged.connect(self.aimspot_head)
@@ -240,9 +236,10 @@ class MainWindow(QMainWindow):
         self.mainwindow_ui.lowerbodyCheckBox.stateChanged.connect(self.aimspot_lowbody)
         self.mainwindow_ui.legsCheckBox.stateChanged.connect(self.aimspot_leg)
         self.mainwindow_ui.leftarmCheckBox.stateChanged.connect(self.aimspot_arms)
-        self.mainwindow_ui.test2checkBox.stateChanged.connect(self.nightmode)
-        self.mainwindow_ui.smoothSlider.valueChanged.connect(self.change_smooth)
+        self.mainwindow_ui.smoothSlider.valueChanged.connect(self.change_smooth_value)
         self.mainwindow_ui.smoothCheckBox.stateChanged.connect(self.toogle_smooth)
+        # Head, upper body, lower body, legs, arms
+        self.Aimspots = [0, 0, 0, 0, 0]
 
         # Visuals
         self.mainwindow_ui.enableglowCheckBox.stateChanged.connect(self.toogle_glow)
@@ -250,6 +247,8 @@ class MainWindow(QMainWindow):
         self.mainwindow_ui.enableglowenemyCheckBox.stateChanged.connect(self.glow_enemy)
         self.mainwindow_ui.colorpickerGlowTeam.clicked.connect(lambda: self.pick_color("glowteam"))
         self.mainwindow_ui.colorpickerGlowEnemy.clicked.connect(lambda: self.pick_color("glowenemy"))
+        self.glow_color_team = Color(0, 0, 255, 1)
+        self.glow_color_enemy = Color(255, 0, 0, 1)
 
         self.mainwindow_ui.enablechamsCheckBox.stateChanged.connect(self.toogle_chams)
         self.mainwindow_ui.enablechamsteamCheckBox.stateChanged.connect(self.update_chams)
@@ -257,61 +256,141 @@ class MainWindow(QMainWindow):
         self.mainwindow_ui.colorpickerChamsTeam.clicked.connect(lambda: self.pick_color("chamsteam"))
         self.mainwindow_ui.colorpickerChamsEnemy.clicked.connect(lambda: self.pick_color("chamsenemy"))
         self.chams_enabled = 0
+        self.chams_color_team = Color(0, 0, 255, 1)
+        self.chams_color_enemy = Color(255, 0, 0, 1)
+        self.brightchams = 0
+        self.brightchamsvalue = 0
+        self.mainwindow_ui.enablebrightchamsCheckbox.stateChanged.connect(self.toogle_brightchams)
+        self.mainwindow_ui.chamsbrightnessSlider.valueChanged.connect(self.update_brightchams)
 
         self.mainwindow_ui.fovchangerCheckBox.stateChanged.connect(self.toogle_fov_changer)
-        self.mainwindow_ui.fovchangerSlider.valueChanged.connect(self.fov_changer_change)
+        self.mainwindow_ui.fovchangerSlider.valueChanged.connect(self.change_fov_changer_value)
+        self.fovchanger_enabled = False
+
+        self.mainwindow_ui.enablenightmodeCheckBox.stateChanged.connect(self.toogle_nightmode)
+        self.mainwindow_ui.nightmodeSlider.valueChanged.connect(self.update_nightmode)
+
+        self.nightmode_enabled = 0
+        self.nightmode_value = 0.1
 
         # Misc
         self.mainwindow_ui.enablebunnyhopCheckBox.stateChanged.connect(self.toogle_bhop)
         self.mainwindow_ui.enableautostrafeCheckBox.stateChanged.connect(self.toogle_autostrafe)
+        self.mainwindow_ui.nohandsCheckBox.stateChanged.connect(self.toogle_nohands)
+        self.nohands_enabled = 0
 
-    # couldnt find another way
+    def toogle_nohands(self):
+        if self.nohands_enabled:
+            self.nohands_enabled = 0
+            tt = 0
+            while tt < 5000:
+                pm.write_int(local_player + 0x258, 100)
+                tt+=1
+        else:
+            self.nohands_enabled = 1
+            tt = 0
+            while tt < 5000:
+                pm.write_int(local_player + 0x258, 0)
+                tt+=1
+
+    def toogle_nightmode(self):
+        if self.nightmode_enabled:
+            self.nightmode_enabled = 0
+            self.update_nightmode(1.0)
+        else:
+            self.nightmode_enabled = 1
+            self.update_nightmode(1.0)
+
+    def update_nightmode(self, Brightness):
+        Brightness = float(Brightness / 100)
+        if self.nightmode_enabled:
+            for i in range(0, 2048):
+                entity = pm.read_uint(client + dwEntityList + i * 0x10)
+                if entity:
+                    entity_id = pm.read_int(pm.read_int(pm.read_int(pm.read_int(entity + 0x8) + 2 * 0x4) + 0x1) + 20)
+
+                    if entity_id != 69:
+                        continue
+
+                    pm.write_int(entity + m_bUseCustomAutoExposureMin, 1)
+                    pm.write_int(entity + m_bUseCustomAutoExposureMax, 1)
+                    pm.write_float(entity + m_flCustomAutoExposureMin, Brightness)
+                    pm.write_float(entity + m_flCustomAutoExposureMax, Brightness)
+        else:
+            for i in range(0, 2048):
+                entity = pm.read_uint(client + dwEntityList + i * 0x10)
+                if entity:
+                    entityclass = pm.read_int(pm.read_int(pm.read_int(pm.read_int(entity + 0x8) + 2 * 0x4) + 0x1) + 20)
+                    if entityclass != 69:
+                        continue
+
+                    pm.write_int(entity + m_bUseCustomAutoExposureMin, 1)
+                    pm.write_int(entity + m_bUseCustomAutoExposureMax, 1)
+                    pm.write_float(entity + m_flCustomAutoExposureMin, 1.2)
+                    pm.write_float(entity + m_flCustomAutoExposureMax, 1.2)
+
+    def toogle_brightchams(self):
+        if self.brightchams:
+            self.brightchams = 0
+            self.update_brightchams(self.brightchamsvalue)
+        else:
+            self.brightchams = 1
+            self.update_brightchams(self.brightchamsvalue)
+
     def pick_color(self, x):
         if x == "glowteam":
             glowteam_colorpicker = QColorDialog()
             glowteam_colorpicker.setWindowTitle("Colorpicker Glow Team")
             self.popups.append(glowteam_colorpicker)
-            glowteam_colorpicker.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.CustomizeWindowHint |
-                                                Qt.WindowCloseButtonHint)
-            glowteam_colorpicker.show()
+            glowteam_colorpicker.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
+            color = glowteam_colorpicker.getColor(parent=self, title="Glow Team Color")
+            self.mainwindow_ui.glowteamcolorLabel.setText(f"R: {color.red()} G: {color.green()} B: {color.blue()}")
+            self.mainthread.update_glow_color_team(Color(color.red(), color.green(), color.blue(), 1))
+
         elif x == "glowenemy":
             glowenemy_colorpicker = QColorDialog()
             glowenemy_colorpicker.setWindowTitle("Colorpicker Glow Enemy")
             self.popups.append(glowenemy_colorpicker)
-            glowenemy_colorpicker.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.CustomizeWindowHint |
-                                                 Qt.WindowCloseButtonHint)
-            glowenemy_colorpicker.show()
+            glowenemy_colorpicker.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
+            color = glowenemy_colorpicker.getColor(parent=self, title="Glow Enemy Color")
+            self.mainwindow_ui.glowenemycolorLabel.setText(f"R: {color.red()} G: {color.green()} B: {color.blue()}")
+            self.mainthread.update_glow_color_enemy(Color(color.red(), color.green(), color.blue(), 1))
+
         elif x == "chamsteam":
             chamsteam_colorpicker = QColorDialog()
             chamsteam_colorpicker.setWindowTitle("Colorpicker Chams Team")
             self.popups.append(chamsteam_colorpicker)
-            chamsteam_colorpicker.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.CustomizeWindowHint |
-                                                 Qt.WindowCloseButtonHint)
-            chamsteam_colorpicker.show()
+            chamsteam_colorpicker.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
+            color = chamsteam_colorpicker.getColor(parent=self, title="Chams Team Color")
+            self.mainwindow_ui.chamsteamcolorLabel.setText(f"R: {color.red()} G: {color.green()} B: {color.blue()}")
+            self.chams_color_team = Color(color.red(), color.green(), color.blue(), 1)
+            self.update_chams()
+
         elif x == "chamsenemy":
             chamsenemy_colorpicker = QColorDialog()
             chamsenemy_colorpicker.setWindowTitle("Colorpicker Chams Enemy")
             self.popups.append(chamsenemy_colorpicker)
-            chamsenemy_colorpicker.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.CustomizeWindowHint |
-                                                  Qt.WindowCloseButtonHint)
-            chamsenemy_colorpicker.show()
+            chamsenemy_colorpicker.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
+            color = chamsenemy_colorpicker.getColor(parent=self, title="Chams Enemy Color")
+            self.mainwindow_ui.chamsenemycolorLabel.setText(f"R: {color.red()} G: {color.green()} B: {color.blue()}")
+            self.chams_color_enemy = Color(color.red(), color.green(), color.blue(), 1)
+            self.update_chams()
 
     def toogle_chams(self):
         if self.chams_enabled:
             self.chams_enabled = 0
+            self.update_chams()
         else:
             self.chams_enabled = 1
+            self.update_chams()
 
     def toogle_smooth(self):
         self.aimbot.toogle_smooth()
 
-    def change_smooth(self, val):
-        val = val / 10
+    def change_smooth_value(self, val):
+        val = val
         self.aimbot.change_smooth_value(val)
         self.mainwindow_ui.smoothLineEdit.setText(f"{val}")
-
-    def nightmode(self):
-        self.mainthread.toogle_nightmode()
 
     def toogle_rcs(self):
         self.mainthread.toogle_rcs()
@@ -381,7 +460,7 @@ class MainWindow(QMainWindow):
         else:
             self.fovchanger_enabled = 1
 
-    def fov_changer_change(self, fov):
+    def change_fov_changer_value(self, fov):
         if self.fovchanger_enabled:
             self.mainwindow_ui.fovchangerLineEdit.setText(f"{fov}")
             fov_changer = local_player + m_iDefaultFOV
@@ -400,7 +479,7 @@ class MainWindow(QMainWindow):
         try:
             val = float(val) * 10
             val = int(val)
-            if 0.1 < val < 360:
+            if 0.1 < val < 3600:
                 self.mainwindow_ui.fovSlider.setValue(val)
         except ValueError:
             pass
@@ -409,6 +488,7 @@ class MainWindow(QMainWindow):
         fov = self.mainwindow_ui.fovSlider.value() / 10
         self.mainwindow_ui.fovLineEdit.setText(f"{fov}")
         self.aimbot.update_fov(fov)
+        print(fov)
 
     def toogle_glow(self):
         self.mainthread.toogle_glow()
@@ -422,29 +502,47 @@ class MainWindow(QMainWindow):
             for i in range(0, 64):
                 entity = pm.read_uint(client + dwEntityList + i * 0x10)
                 if entity:
-                    Argb = [255, 0, 0]
-                    Ergb = [255, 0, 0]
                     entityTeam = pm.read_uint(entity + m_iTeamNum)
                     if self.mainwindow_ui.enablechamsteamCheckBox.isChecked():
                         if entityTeam == localTeam and entityTeam != 0 and entity != local_player:
-                            pm.write_uchar(entity + 112, Argb[0])
-                            pm.write_uchar(entity + 113, Argb[1])
-                            pm.write_uchar(entity + 114, Argb[2])
+                            pm.write_uchar(entity + 112, self.chams_color_team.R)
+                            pm.write_uchar(entity + 113, self.chams_color_team.G)
+                            pm.write_uchar(entity + 114, self.chams_color_team.B)
+                    else:
+                        if entityTeam == localTeam and entityTeam != 0 and entity != local_player:
+                            pm.write_uchar(entity + 112, 255)
+                            pm.write_uchar(entity + 113, 255)
+                            pm.write_uchar(entity + 114, 255)
 
                     if self.mainwindow_ui.enablechamsenemyCheckBox.isChecked():
                         if entityTeam != localTeam and entityTeam != 0 and entity != local_player:
-                            pm.write_uchar(entity + 112, Ergb[0])
-                            pm.write_uchar(entity + 113, Ergb[1])
-                            pm.write_uchar(entity + 114, Ergb[2])
-                    # buf = 1084227584
-                    # model_ambient = get_sig(pm, "engine.dll",
-                    #                         bytes(PatternDict["model_ambient_min"], encoding="raw_unicode_escape"), 0,
-                    #                         4)
-                    # model_ambient = int(model_ambient, 0)
-                    # point = pm.read_int(engine + model_ambient - 44)
-                    # xored = buf ^ point
-                    # pm.write_int(engine + model_ambient, xored)
+                            pm.write_uchar(entity + 112, self.chams_color_enemy.R)
+                            pm.write_uchar(entity + 113, self.chams_color_enemy.G)
+                            pm.write_uchar(entity + 114, self.chams_color_enemy.B)
+                    else:
+                        if entityTeam != localTeam and entityTeam != 0 and entity != local_player:
+                            pm.write_uchar(entity + 112, 255)
+                            pm.write_uchar(entity + 113, 255)
+                            pm.write_uchar(entity + 114, 255)
+        else:
+            for i in range(0, 64):
+                entity = pm.read_uint(client + dwEntityList + i * 0x10)
+                if entity:
+                    pm.write_uchar(entity + 112, 255)
+                    pm.write_uchar(entity + 113, 255)
+                    pm.write_uchar(entity + 114, 255)
 
+    def update_brightchams(self, brightness):
+        if self.brightchams:
+            brightness = float(brightness)
+            point = pm.read_int(engine + model_ambient_min - 0x2c)
+            yourval = int(f2b(brightness), 2) ^ point
+            pm.write_int(engine + model_ambient_min, yourval)
+        else:
+            brightness = float(0)
+            point = pm.read_int(engine + model_ambient_min - 0x2c)
+            yourval = int(f2b(brightness), 2) ^ point
+            pm.write_int(engine + model_ambient_min, yourval)
 
     def open_close(self):
         if self.mainwindow_ui.tabWidget.isHidden():
@@ -464,28 +562,17 @@ class MainWindow(QMainWindow):
             pass
 
 
-def get_max_clients():
-    return pm.read_int(engine_pointer + dwClientState_MaxPlayer)
-
-
-def is_in_game():
-    return pm.read_int(engine_pointer + dwClientState_State) == 6
-
-
 def run():
     global pm
     global client
     global engine
     global engine_pointer
     global local_player
-    global PatternDict
-    PatternDict = {}
     pm = pymem.Pymem("csgo.exe")
     client = pymem.process.module_from_name(pm.process_handle, "client.dll").lpBaseOfDll
     engine = pymem.process.module_from_name(pm.process_handle, "engine.dll").lpBaseOfDll
     engine_pointer = pm.read_uint(engine + dwClientState)
     local_player = pm.read_uint(client + dwLocalPlayer)
-    transform_patterns()
 
     app = QApplication(["matplotlib"])
     mainwindow = MainWindow()
