@@ -177,7 +177,6 @@ class LocalPlayer:
         return distance
 
     def aim_at(self, Spotted, FOV, Aimspots, maxClients, Smooth, Smoothval):
-        print(self.LocalPlayer)
         olddist = 111111111
         best_target = None
         r_localpos = None
@@ -267,7 +266,6 @@ class LocalPlayer:
                 diff.z = normal.z - self.ViewOffset.z
                 normalize_angles(diff)
                 cocktest = sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z)
-                print(cocktest)
                 pitch = self.ViewOffset.x + diff.x / Smoothval
                 yaw = self.ViewOffset.y + diff.y / Smoothval
                 if -89 <= pitch <= 89 and -180 <= yaw <= 180:

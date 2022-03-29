@@ -1,20 +1,24 @@
-import os.path
 import time
+import os.path
+import sys
+import pymem
+import configparser
+from ctypes import windll
+from keyboard import is_pressed
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QPixmap
-import sys
-import pymem
+from ast import literal_eval
+
 from settings.mainwindow import Ui_MainWindow
-from funcs.glow import glow, nightmode
+from funcs.glow import glow
 from funcs.aimbot import LocalPlayer
 from offsets.offsets import *
-from keyboard import is_pressed
+from offsets.update_offsets import update_offsets
 from funcs.bunnyhop import Bhop, AutoStrafe
-from ctypes import windll
 from funcs.rcs import rcse
 from classes.Classes import Vector, Color, f2b
-import re
+from settings.guistuff import errorbox
 
 k32 = windll.kernel32
 
@@ -61,12 +65,11 @@ class MainThread(QThread):
 
         # Misc Settings
         self.bunnyhop_enabled = 0
-        self.Autostrafe = False
+        self.Autostrafe = 0
         self.OldViewangle = 0
 
         # Put rcs here ?????
         self.rcs_enabled = 0
-        self.nightmode_enabled = 0
 
     def update_glow_color_team(self, color):
         self.glow_color_team = color
@@ -110,12 +113,6 @@ class MainThread(QThread):
         else:
             self.Autostrafe = 1
 
-    def toogle_nightmode(self):
-        if self.nightmode_enabled:
-            self.nightmode_enabled = 0
-        else:
-            self.nightmode_enabled = 1
-
     def run(self):
         oldpunch = Vector(0, 0, 0)
         newrcs = Vector(0, 0, 0)
@@ -139,8 +136,6 @@ class MainThread(QThread):
             if self.rcs_enabled:
                 oldpunch = rcse(pm, local_player, engine_pointer, oldpunch, newrcs, punch, rcs)
 
-            if self.nightmode_enabled:
-                nightmode(pm, client, 1.5)
 
 
 class AimbotThread(QThread):
@@ -148,9 +143,8 @@ class AimbotThread(QThread):
         super().__init__()
         self.FOV = 1
         self.Aimspots = [0, 0, 0, 0, 0]
-        self.Spotted = False
-        self.enabled = False
-        self.Wait = 150
+        self.Spotted = 0
+        self.enabled = 0
         self.Smooth = 0
         self.Smoothvalue = 1
         self.IndexToAimspot = {0: 8, 1: 6, 2: 4, 3: 1, 4: 3}
@@ -164,17 +158,15 @@ class AimbotThread(QThread):
 
     def toogle_enabled(self):
         if self.enabled:
-            self.enabled = False
-            self.Wait = 150
+            self.enabled = 0
         else:
-            self.enabled = True
-            self.Wait = 1
+            self.enabled = 1
 
     def toogle_spotted(self):
         if self.Spotted:
-            self.Spotted = False
+            self.Spotted = 0
         else:
-            self.Spotted = True
+            self.Spotted = 1
 
     def toogle_smooth(self):
         if self.Smooth:
@@ -259,13 +251,14 @@ class MainWindow(QMainWindow):
         self.chams_color_team = Color(0, 0, 255, 1)
         self.chams_color_enemy = Color(255, 0, 0, 1)
         self.brightchams = 0
-        self.brightchamsvalue = 0
+        self.brightchams_value = 0
         self.mainwindow_ui.enablebrightchamsCheckbox.stateChanged.connect(self.toogle_brightchams)
         self.mainwindow_ui.chamsbrightnessSlider.valueChanged.connect(self.update_brightchams)
 
         self.mainwindow_ui.fovchangerCheckBox.stateChanged.connect(self.toogle_fov_changer)
         self.mainwindow_ui.fovchangerSlider.valueChanged.connect(self.change_fov_changer_value)
-        self.fovchanger_enabled = False
+        self.fovchanger_enabled = 0
+        self.fovchanger_value = 90.0
 
         self.mainwindow_ui.enablenightmodeCheckBox.stateChanged.connect(self.toogle_nightmode)
         self.mainwindow_ui.nightmodeSlider.valueChanged.connect(self.update_nightmode)
@@ -279,34 +272,39 @@ class MainWindow(QMainWindow):
         self.mainwindow_ui.nohandsCheckBox.stateChanged.connect(self.toogle_nohands)
         self.nohands_enabled = 0
 
+        self.mainwindow_ui.saveconfigButton.clicked.connect(self.save_config)
+        self.mainwindow_ui.loadconfigButton.clicked.connect(self.load_config)
+        self.mainwindow_ui.updateloadconfigButton.clicked.connect(self.update_loaded_configs)
+
     def toogle_nohands(self):
         if self.nohands_enabled:
             self.nohands_enabled = 0
             tt = 0
             while tt < 5000:
                 pm.write_int(local_player + 0x258, 100)
-                tt+=1
+                tt += 1
         else:
             self.nohands_enabled = 1
             tt = 0
             while tt < 5000:
                 pm.write_int(local_player + 0x258, 0)
-                tt+=1
+                tt += 1
 
     def toogle_nightmode(self):
         if self.nightmode_enabled:
             self.nightmode_enabled = 0
-            self.update_nightmode(1.0)
         else:
             self.nightmode_enabled = 1
-            self.update_nightmode(1.0)
 
     def update_nightmode(self, Brightness):
         Brightness = float(Brightness / 100)
+        print(Brightness)
+        print(self.nightmode_enabled)
         if self.nightmode_enabled:
             for i in range(0, 2048):
                 entity = pm.read_uint(client + dwEntityList + i * 0x10)
                 if entity:
+
                     entity_id = pm.read_int(pm.read_int(pm.read_int(pm.read_int(entity + 0x8) + 2 * 0x4) + 0x1) + 20)
 
                     if entity_id != 69:
@@ -332,10 +330,10 @@ class MainWindow(QMainWindow):
     def toogle_brightchams(self):
         if self.brightchams:
             self.brightchams = 0
-            self.update_brightchams(self.brightchamsvalue)
+            self.update_brightchams(self.brightchams_value)
         else:
             self.brightchams = 1
-            self.update_brightchams(self.brightchamsvalue)
+            self.update_brightchams(self.brightchams_value)
 
     def pick_color(self, x):
         if x == "glowteam":
@@ -457,6 +455,7 @@ class MainWindow(QMainWindow):
             pm.write_int(fov_changer, 90)
             self.mainwindow_ui.fovchangerLineEdit.setText(f"90")
             self.mainwindow_ui.fovchangerSlider.setValue(90)
+            self.fovchanger_value = 90
         else:
             self.fovchanger_enabled = 1
 
@@ -465,6 +464,7 @@ class MainWindow(QMainWindow):
             self.mainwindow_ui.fovchangerLineEdit.setText(f"{fov}")
             fov_changer = local_player + m_iDefaultFOV
             pm.write_int(fov_changer, fov)
+            self.fovchanger_value = fov
 
     def toogle_spotted(self):
         self.aimbot.toogle_spotted()
@@ -488,7 +488,6 @@ class MainWindow(QMainWindow):
         fov = self.mainwindow_ui.fovSlider.value() / 10
         self.mainwindow_ui.fovLineEdit.setText(f"{fov}")
         self.aimbot.update_fov(fov)
-        print(fov)
 
     def toogle_glow(self):
         self.mainthread.toogle_glow()
@@ -497,6 +496,7 @@ class MainWindow(QMainWindow):
         self.aimbot.toogle_enabled()
 
     def update_chams(self):
+        print(self.chams_enabled)
         if self.chams_enabled:
             localTeam = pm.read_int(local_player + m_iTeamNum)
             for i in range(0, 64):
@@ -533,6 +533,7 @@ class MainWindow(QMainWindow):
                     pm.write_uchar(entity + 114, 255)
 
     def update_brightchams(self, brightness):
+        self.brightchams_value = brightness
         if self.brightchams:
             brightness = float(brightness)
             point = pm.read_int(engine + model_ambient_min - 0x2c)
@@ -561,6 +562,248 @@ class MainWindow(QMainWindow):
         except AttributeError:
             pass
 
+    def update_loaded_configs(self):
+        files = os.listdir("configfiles")
+        self.mainwindow_ui.loadconfigComboBox.clear()
+        for file in files:
+            self.mainwindow_ui.loadconfigComboBox.addItem(f"{file}")
+
+    def load_config(self):
+        config_name = self.mainwindow_ui.loadconfigComboBox.currentText()
+        self.mainwindow_ui.currentconfigLabel.setText(config_name)
+        path = os.path.join("configfiles", f"{config_name}")
+        config = configparser.ConfigParser()
+        config.read(path)
+        self.aimbot.enabled = int(config["AIMBOT"]["enabled"])
+        self.aimbot.FOV = float((config["AIMBOT"]["fov"]))
+        self.aimbot.Aimspots = (config["AIMBOT"]["aimspots"])
+        self.aimbot.Spotted = int(config["AIMBOT"]["spotted"])
+        self.aimbot.Smooth = int(config["AIMBOT"]["smooth"])
+        self.aimbot.Smoothvalue = int(config["AIMBOT"]["smoothvalue"])
+        self.mainthread.rcs_enabled = int(config["AIMBOT"]["rcs"])
+        if self.aimbot.enabled:
+            self.mainwindow_ui.aimbotCheckBox.setChecked(True)
+            self.aimbot.enabled = 1
+        else:
+            self.mainwindow_ui.aimbotCheckBox.setChecked(False)
+            self.aimbot.enabled = 0
+
+        self.mainwindow_ui.fovSlider.setValue(int(self.aimbot.FOV*10))
+        self.mainwindow_ui.fovLineEdit.setText(f"{self.aimbot.FOV}")
+        self.aimbot.Aimspots = literal_eval(self.aimbot.Aimspots)
+        for i, item in enumerate(self.aimbot.Aimspots):
+            if i == 0:
+                if int(item) == 1:
+                    self.mainwindow_ui.headCheckBox.setChecked(True)
+                    self.aimbot.Aimspots[0] = 1
+                else:
+                    self.mainwindow_ui.headCheckBox.setChecked(False)
+                    self.aimbot.Aimspots[0] = 0
+            elif i ==1:
+                if int(item) == 1:
+                    self.mainwindow_ui.upperbodyCheckBox.setChecked(True)
+                    self.aimbot.Aimspots[1] = 1
+                else:
+                    self.mainwindow_ui.upperbodyCheckBox.setChecked(False)
+                    self.aimbot.Aimspots[1] = 0
+
+            elif i ==2:
+                if int(item) == 1:
+                    self.mainwindow_ui.lowerbodyCheckBox.setChecked(True)
+                    self.aimbot.Aimspots[2] = 1
+                else:
+                    self.mainwindow_ui.lowerbodyCheckBox.setChecked(False)
+                    self.aimbot.Aimspots[2] = 0
+
+            elif i ==3:
+                if int(item) == 1:
+                    self.mainwindow_ui.legsCheckBox.setChecked(True)
+                    self.aimbot.Aimspots[3] = 1
+                else:
+                    self.mainwindow_ui.legsCheckBox.setChecked(False)
+                    self.aimbot.Aimspots[3] = 0
+            elif i ==4:
+                if int(item) == 1:
+                    self.mainwindow_ui.leftarmCheckBox.setChecked(True)
+                    self.aimbot.Aimspots[4] = 1
+                else:
+                    self.mainwindow_ui.leftarmCheckBox.setChecked(False)
+                    self.aimbot.Aimspots[4] = 0
+
+        if self.aimbot.Spotted:
+            self.mainwindow_ui.spottedCheckBox.setChecked(True)
+            self.aimbot.Spotted = 1
+        else:
+            self.mainwindow_ui.spottedCheckBox.setChecked(False)
+            self.aimbot.Spotted = 0
+
+        if self.mainthread.rcs_enabled:
+            self.mainwindow_ui.rcsCheckBox.setChecked(True)
+            self.mainthread.rcs_enabled = 1
+        else:
+            self.mainwindow_ui.rcsCheckBox.setChecked(False)
+            self.mainthread.rcs_enabled = 0
+
+        if self.aimbot.Smooth:
+            self.mainwindow_ui.smoothCheckBox.setChecked(True)
+            self.aimbot.Smooth = 1
+        else:
+            self.mainwindow_ui.smoothCheckBox.setChecked(False)
+            self.mainthread.rcs_enabled = 0
+
+        self.mainwindow_ui.smoothSlider.setValue(int(self.aimbot.Smoothvalue))
+        self.mainwindow_ui.smoothLineEdit.setText(f"{self.aimbot.Smoothvalue}")
+
+        self.mainthread.glow_enabled = int(config["VISUAL"]["glow_enabled"])
+        self.mainthread.glow_team = int(config["VISUAL"]["glow_team"])
+        self.mainthread.glow_enemy  = int(config["VISUAL"]["glow_enemy"])
+        tm = literal_eval(config["VISUAL"]["glow_team_color"])
+        self.mainthread.update_glow_color_team(Color(tm[0], tm[1], tm[2], tm[3]))
+        tm = literal_eval(config["VISUAL"]["glow_enemy_color"])
+        self.mainthread.update_glow_color_team(Color(tm[0], tm[1], tm[2], tm[3]))
+        if self.mainthread.glow_enabled:
+            self.mainwindow_ui.enableglowCheckBox.setChecked(True)
+            self.mainthread.glow_enabled = 1
+        else:
+            self.mainwindow_ui.enableglowCheckBox.setChecked(False)
+            self.mainthread.glow_enabled = 0
+
+        if self.mainthread.glow_team:
+            self.mainwindow_ui.enableglowteamCheckBox.setChecked(True)
+            self.mainthread.glow_team = 1
+        else:
+            self.mainwindow_ui.enableglowteamCheckBox.setChecked(False)
+            self.mainthread.glow_team = 0
+
+        if self.mainthread.glow_enemy:
+            self.mainwindow_ui.enableglowenemyCheckBox.setChecked(True)
+            self.mainthread.glow_enemy = 1
+        else:
+            self.mainwindow_ui.enableglowenemyCheckBox.setChecked(False)
+            self.mainthread.glow_enemy = 0
+
+        self.chams_enabled = int(config["VISUAL"]["chams_enabled"])
+        if self.chams_enabled:
+            self.mainwindow_ui.enablechamsCheckBox.setChecked(True)
+            self.chams_enabled = 1
+        else:
+            self.mainwindow_ui.enablechamsCheckBox.setChecked(False)
+            self.chams_enabled = 0
+
+        tmp = int(config["VISUAL"]["chams_team"])
+        if tmp:
+            self.mainwindow_ui.enablechamsteamCheckBox.setChecked(True)
+        else:
+            self.mainwindow_ui.enablechamsteamCheckBox.setChecked(False)
+
+        tmp = int(config["VISUAL"]["chams_enemy"])
+        if tmp:
+            self.mainwindow_ui.enablechamsenemyCheckBox.setChecked(True)
+        else:
+            self.mainwindow_ui.enablechamsenemyCheckBox.setChecked(False)
+        tm = literal_eval(config["VISUAL"]["chams_team_color"])
+        self.chams_color_team = Color(tm[0], tm[1], tm[2], tm[3])
+        tm = literal_eval(config["VISUAL"]["chams_enemy_color"])
+        self.chams_color_enemy = Color(tm[0], tm[1], tm[2], tm[3])
+        self.update_chams()
+        self.nightmode_enabled = int(config["VISUAL"]["nightmode_enabled"])
+        self.nightmode_value = float(config["VISUAL"]["nightmodevalue"])
+        self.brightchams = int(config["VISUAL"]["brightmodels_enabled"])
+        self.brightchams_value = int(config["VISUAL"]["brightmodels_value"])
+        self.fovchanger_enabled = int(config["VISUAL"]["fovchanger_enabled"])
+        self.fovchanger_value = int(config["VISUAL"]["fovchanger_value"])
+
+        if self.nightmode_enabled:
+            self.mainwindow_ui.enablenightmodeCheckBox.setChecked(True)
+            self.nightmode_enabled = 1
+            self.update_nightmode(self.nightmode_value * 100)
+        else:
+            self.mainwindow_ui.enablenightmodeCheckBox.setChecked(False)
+            self.nightmode_enabled = 0
+
+        if self.brightchams:
+            self.mainwindow_ui.enablebrightchamsCheckbox.setChecked(True)
+            self.mainwindow_ui.chamsbrightnessSlider.setValue(self.brightchams_value)
+            print(self.brightchams_value)
+            self.brightchams = 1
+            self.update_brightchams(self.brightchams_value)
+
+        else:
+            self.mainwindow_ui.enablenightmodeCheckBox.setChecked(False)
+            self.brightchams = 0
+
+        if self.fovchanger_enabled:
+            x = self.fovchanger_value
+            self.mainwindow_ui.fovchangerCheckBox.setChecked(True)
+            self.mainwindow_ui.fovchangerSlider.setValue(x)
+            self.fovchanger_enabled = 1
+            self.mainwindow_ui.fovchangerLineEdit.setText(f"{x}")
+        else:
+            self.mainwindow_ui.fovchangerCheckBox.setChecked(False)
+            self.fovchanger_enabled = 0
+
+        self.mainthread.bunnyhop_enabled = int(config["MISC"]["bunnyhop_enabled"])
+        if self.mainthread.bunnyhop_enabled:
+            self.mainwindow_ui.enablebunnyhopCheckBox.setChecked(True)
+            self.mainthread.bunnyhop_enabled = 1
+        else:
+            self.mainwindow_ui.enablebunnyhopCheckBox.setChecked(False)
+            self.mainthread.bunnyhop_enabled = 0
+
+        self.mainthread.Autostrafe = int(config["MISC"]["bunnyhop_autostrafe"])
+        if self.mainthread.Autostrafe:
+            self.mainwindow_ui.enableautostrafeCheckBox.setChecked(True)
+            self.mainthread.Autostrafe = 1
+        else:
+            self.mainwindow_ui.enableautostrafeCheckBox.setChecked(False)
+            self.mainthread.Autostrafe = 0
+
+        self.nohands_enabled = int(config["MISC"]["nohands_enabled"])
+        if self.nohands_enabled:
+            self.nohands_enabled = 0
+            self.mainwindow_ui.nohandsCheckBox.setChecked(True)
+        else:
+            self.nohands_enabled = 1
+            self.mainwindow_ui.nohandsCheckBox.setChecked(False)
+
+    def save_config(self):
+        name = self.mainwindow_ui.saveconfiglineEdit.text()
+        config = configparser.ConfigParser()
+        config["AIMBOT"] = {"enabled": self.aimbot.enabled, "fov": self.aimbot.FOV, "aimspots": self.aimbot.Aimspots,
+                            "spotted": self.aimbot.Spotted, "rcs" : self.mainthread.rcs_enabled,
+                            "smooth": self.aimbot.Smooth, "smoothvalue": self.aimbot.Smoothvalue}
+
+        if self.mainwindow_ui.enablechamsenemyCheckBox.isChecked():
+            chams_enemy = 1
+        else:
+            chams_enemy = 0
+        if self.mainwindow_ui.enablechamsteamCheckBox.isChecked():
+            chams_team = 1
+        else:
+            chams_team = 0
+
+        config["VISUAL"] = {"glow_enabled": self.mainthread.glow_enabled, "glow_team": self.mainthread.glow_team,
+                            "glow_enemy": self.mainthread.glow_enemy,
+                            "glow_team_color": [self.mainthread.glow_color_team.R, self.mainthread.glow_color_team.G,
+                                                self.mainthread.glow_color_team.B, self.mainthread.glow_color_team.A],
+                            "glow_enemy_color": [self.mainthread.glow_color_enemy.R, self.mainthread.glow_color_enemy.G,
+                                                 self.mainthread.glow_color_enemy.B,
+                                                 self.mainthread.glow_color_enemy.A],
+                            "chams_enabled": self.chams_enabled, "chams_team": chams_team, "chams_enemy": chams_enemy,
+                            "chams_team_color": [self.chams_color_team.R, self.chams_color_team.G,
+                                                 self.chams_color_team.B, self.chams_color_team.A],
+                            "chams_enemy_color": [self.chams_color_enemy.R, self.chams_color_enemy.G,
+                                                  self.chams_color_enemy.B, self.chams_color_enemy.A],
+                            "nightmode_enabled": self.nightmode_enabled, "nightmodevalue": self.nightmode_value,
+                            "brightmodels_enabled": self.brightchams, "brightmodels_value": self.brightchams_value,
+                            "fovchanger_enabled": self.fovchanger_enabled, "fovchanger_value": self.fovchanger_value}
+        config["MISC"] = {"bunnyhop_enabled": self.mainthread.bunnyhop_enabled,
+                          "bunnyhop_autostrafe": self.mainthread.Autostrafe, "nohands_enabled": self.nohands_enabled}
+        path = os.path.join("configfiles", f"{name}.ini")
+        with open(path, 'w') as configfile:
+            config.write(configfile)
+        self.mainwindow_ui.currentconfigLabel.setText(f"{name}")
+
 
 def run():
     global pm
@@ -568,16 +811,20 @@ def run():
     global engine
     global engine_pointer
     global local_player
-    pm = pymem.Pymem("csgo.exe")
-    client = pymem.process.module_from_name(pm.process_handle, "client.dll").lpBaseOfDll
-    engine = pymem.process.module_from_name(pm.process_handle, "engine.dll").lpBaseOfDll
-    engine_pointer = pm.read_uint(engine + dwClientState)
-    local_player = pm.read_uint(client + dwLocalPlayer)
-
     app = QApplication(["matplotlib"])
-    mainwindow = MainWindow()
-    mainwindow.show()
-    sys.exit(app.exec_())
+    try:
+        pm = pymem.Pymem("csgo.exe")
+    except pymem.exception.ProcessNotFound:
+        errorbox("Please start csgo first.")
+    else:
+        client = pymem.process.module_from_name(pm.process_handle, "client.dll").lpBaseOfDll
+        engine = pymem.process.module_from_name(pm.process_handle, "engine.dll").lpBaseOfDll
+        engine_pointer = pm.read_uint(engine + dwClientState)
+        local_player = pm.read_uint(client + dwLocalPlayer)
+        mainwindow = MainWindow()
+        mainwindow.show()
+        update_offsets()
+        sys.exit(app.exec_())
 
 
 if __name__ == "__main__":
