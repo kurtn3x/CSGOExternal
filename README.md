@@ -12,7 +12,7 @@
 ### <ins> Visuals: </ins>
 #### Glow (Team, Enemy), Chams (Team, Enemy), Colorpicker for glow and chams, Brightmodels (makes models bright), Map Brightness, FOV Changer
 ### <ins> Misc: </ins>
-#### Bunnyhop, Autostrafe, Configloader
+#### Bunnyhop, Autostrafe, Configloader, Autoupdating offsets
 
 ****
 ## Known Problems
