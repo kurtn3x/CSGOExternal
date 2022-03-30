@@ -17,7 +17,8 @@
 ****
 ## Known Bugs
 #### - Map Brightness, Player FOV changes  have to be made while being in a map. After mapchange the settings have to be made again. Will not be fixed.
-#### There may be some bugs with the configloader. Its quite cancer because i didnt intent to make one while starting to write this cheat.
+#### - There may be some bugs with the configloader. Its quite cancer because i didnt intent to make one while starting to write this cheat.
+#### - Closing the cheat without the Close Button in Misc Settings will keep any changes written to the games memory. This includes Map Brightness, Model Brightness, FOV Changer, Chams and Nohands
 
 ****
 ![alt text](https://github.com/kurtn3x/CSGOExternal/blob/main/settings/showcase_screenshots/1.png?raw=true)
