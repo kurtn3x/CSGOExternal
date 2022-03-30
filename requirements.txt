@@ -1,0 +1,4 @@
+keyboard==0.13.5
+Pymem==1.8.5
+PyQt5==5.15.6
+requests==2.27.1
