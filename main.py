@@ -107,7 +107,7 @@ class WindowThread(QThread):
 
 
 class MainThread(QThread):
-    def __init__(self, pm, client):
+    def __init__(self):
         super().__init__()
         # Visuals Settings
         self.glow_enabled = 0
@@ -196,7 +196,6 @@ class MainThread(QThread):
                     continue
 
 
-
 class AimbotThread(QThread):
     def __init__(self):
         super().__init__()
@@ -268,7 +267,7 @@ class MainWindow(QMainWindow):
         self.WindowManager.start()
         self.WindowManager.update_progress.connect(self.open_close)
 
-        self.mainthread = MainThread(pm, client)
+        self.mainthread = MainThread()
         self.mainthread.start()
 
         self.aimbot = AimbotThread()
@@ -702,7 +701,7 @@ class MainWindow(QMainWindow):
         tm = literal_eval(config["VISUAL"]["glow_team_color"])
         self.mainthread.update_glow_color_team(Color(tm[0], tm[1], tm[2], tm[3]))
         tm = literal_eval(config["VISUAL"]["glow_enemy_color"])
-        self.mainthread.update_glow_color_team(Color(tm[0], tm[1], tm[2], tm[3]))
+        self.mainthread.update_glow_color_enemy(Color(tm[0], tm[1], tm[2], tm[3]))
         if self.mainthread.glow_enabled:
             self.mainwindow_ui.enableglowCheckBox.setChecked(True)
             self.mainthread.glow_enabled = 1
