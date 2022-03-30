@@ -1,7 +1,7 @@
 from offsets.offsets import *
 
 
-def glow(pm, client, glow_manager, myteamid, glow_enemy, glow_team, Color_team, Color_enemy):
+def glow(pm, client, myteamid, glow_enemy, glow_team, Color_team, Color_enemy):
     glow_manager = pm.read_int(client + dwGlowObjectManager)
     for i in range(1, 32):
         entity = pm.read_int(client + dwEntityList + i * 0x10)
@@ -9,6 +9,10 @@ def glow(pm, client, glow_manager, myteamid, glow_enemy, glow_team, Color_team, 
         if entity:
             entity_team_id = pm.read_int(entity + m_iTeamNum)
             entity_glow = pm.read_int(entity + m_iGlowIndex)
+            entity_dormant = pm.read_int(entity + m_bDormant)
+
+            if entity_dormant:
+                continue
 
             if entity_team_id != myteamid and glow_enemy:  # Terrorist
                 pm.write_float(glow_manager + entity_glow * 0x38 + 0x8, float(Color_enemy.R / 255.0))  # R

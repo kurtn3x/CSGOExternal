@@ -111,7 +111,6 @@ class MainThread(QThread):
         super().__init__()
         # Visuals Settings
         self.glow_enabled = 0
-        self.glow_manager = pm.read_int(client + dwGlowObjectManager)
         self.glow_team = 0
         self.glow_enemy = 0
         self.glow_color_team = Color(0.0, 0.0, 255.0, 0.0)
@@ -187,7 +186,7 @@ class MainThread(QThread):
                             self.OldViewangle = y_angle
 
                     if self.glow_enabled:
-                        glow(pm, client, self.glow_manager, local_player_team, self.glow_enemy,
+                        glow(pm, client, local_player_team, self.glow_enemy,
                              self.glow_team, self.glow_color_team, self.glow_color_enemy)
 
                     if self.rcs_enabled:
