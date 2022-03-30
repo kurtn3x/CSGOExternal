@@ -1,3 +1,11 @@
+## Requirements:
+#### - Cheat is written and tested in Python 3.10. For full functionality use Python3.10. (Probably works with other 3.x versions as well)
+#### - PyQT5
+#### - Pymem
+#### - PyQT5
+#### - requests
+
+****
 ## Features
 ### <ins> Aimbot: </ins>
 #### FOV, only when in sight (Spotted), RCS (shaky if enabled with aimbot), Smooth for Aimbot, Hitboxes (currently only head, upper body, lower body)
