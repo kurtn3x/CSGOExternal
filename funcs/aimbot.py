@@ -177,6 +177,7 @@ class LocalPlayer:
         return distance
 
     def aim_at(self, Spotted, FOV, Aimspots, maxClients, Smooth, Smoothval):
+        self.get()
         olddist = 111111111
         best_target = None
         r_localpos = None

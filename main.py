@@ -23,21 +23,6 @@ from settings.guistuff import errorbox
 k32 = windll.kernel32
 
 
-class GamestateThread(QThread):
-    update_localplayer = pyqtSignal(bool)
-
-    def send_update(self):
-        self.update_localplayer.emit(True)
-
-    def run(self):
-        while True:
-            k32.Sleep(250)
-            game_state = pm.read_int(engine_pointer + dwClientState_State)
-            if game_state == 6:
-                local_player = pm.read_uint(client + dwLocalPlayer)
-                self.send_update()
-
-
 class WindowThread(QThread):
     update_progress = pyqtSignal(str)
 
@@ -119,22 +104,27 @@ class MainThread(QThread):
         punch = Vector(0, 0, 0)
         rcs = Vector(0, 0, 0)
         while True:
-            time.sleep(0.000000000001)
-            if self.bunnyhop_enabled and is_pressed("space"):
-                Bhop(pm, client, local_player)
+            time.sleep(0.001)
+            try:
+                local_player = pm.read_uint(client + dwLocalPlayer)
+                local_player_team = pm.read_int(local_player + m_iTeamNum)
+                if self.bunnyhop_enabled and is_pressed("space"):
+                    Bhop(pm, client, local_player)
 
-                if self.Autostrafe:  # Autostrafe
-                    y_angle = pm.read_float(engine_pointer + dwClientState_ViewAngles + 0x4)
-                    y_angle = AutoStrafe(pm, client, local_player, y_angle, self.OldViewangle)
-                    self.OldViewangle = y_angle
+                    if self.Autostrafe:  # Autostrafe
+                        y_angle = pm.read_float(engine_pointer + dwClientState_ViewAngles + 0x4)
+                        y_angle = AutoStrafe(pm, client, local_player, y_angle, self.OldViewangle)
+                        self.OldViewangle = y_angle
 
-            if self.glow_enabled:
-                glow(pm, client, self.glow_manager, pm.read_int(local_player + m_iTeamNum), self.glow_enemy,
-                     self.glow_team, self.glow_color_team, self.glow_color_enemy, pm.read_int(engine_pointer +
-                                                                                              dwClientState_MaxPlayer))
+                if self.glow_enabled:
+                    glow(pm, client, self.glow_manager, local_player_team, self.glow_enemy,
+                         self.glow_team, self.glow_color_team, self.glow_color_enemy)
 
-            if self.rcs_enabled:
-                oldpunch = rcse(pm, local_player, engine_pointer, oldpunch, newrcs, punch, rcs)
+                if self.rcs_enabled:
+                    oldpunch = rcse(pm, local_player, engine_pointer, oldpunch, newrcs, punch, rcs)
+            except Exception as e:
+                print(e)
+                continue
 
 
 
@@ -181,14 +171,17 @@ class AimbotThread(QThread):
         self.local_player.get()
 
     def run(self):
-        self.local_player.get()
         while True:
             time.sleep(0.0000000000001)
-            if pm.read_int(engine_pointer + dwClientState_State) == 6:
-                if self.enabled:
-                    self.local_player.aim_at(self.Spotted, self.FOV, self.Aimspots,
-                                             pm.read_int(engine_pointer + dwClientState_MaxPlayer), self.Smooth,
-                                             self.Smoothvalue)
+            try:
+                if pm.read_int(engine_pointer + dwClientState_State) == 6:
+                    if self.enabled:
+                        self.local_player.aim_at(self.Spotted, self.FOV, self.Aimspots,
+                                                 pm.read_int(engine_pointer + dwClientState_MaxPlayer), self.Smooth,
+                                                 self.Smoothvalue)
+            except Exception as e:
+                print(e)
+                continue
 
 
 class MainWindow(QMainWindow):
@@ -211,10 +204,6 @@ class MainWindow(QMainWindow):
 
         self.aimbot = AimbotThread()
         self.aimbot.start()
-
-        self.gamestate = GamestateThread()
-        self.gamestate.start()
-        self.gamestate.update_localplayer.connect(self.aimbot.update_localplayer)
 
         # Aimbot
         self.mainwindow_ui.aimbotCheckBox.stateChanged.connect(self.start_aimbot)
@@ -280,12 +269,14 @@ class MainWindow(QMainWindow):
         if self.nohands_enabled:
             self.nohands_enabled = 0
             tt = 0
+            local_player = pm.read_uint(client + dwLocalPlayer)
             while tt < 5000:
                 pm.write_int(local_player + 0x258, 100)
                 tt += 1
         else:
             self.nohands_enabled = 1
             tt = 0
+            local_player = pm.read_uint(client + dwLocalPlayer)
             while tt < 5000:
                 pm.write_int(local_player + 0x258, 0)
                 tt += 1
@@ -449,6 +440,7 @@ class MainWindow(QMainWindow):
         self.aimbot.toogle_rage()
 
     def toogle_fov_changer(self):
+        local_player = pm.read_uint(client + dwLocalPlayer)
         fov_changer = local_player + m_iDefaultFOV
         if self.fovchanger_enabled:
             self.fovchanger_enabled = 0
@@ -461,6 +453,7 @@ class MainWindow(QMainWindow):
 
     def change_fov_changer_value(self, fov):
         if self.fovchanger_enabled:
+            local_player = pm.read_uint(client + dwLocalPlayer)
             self.mainwindow_ui.fovchangerLineEdit.setText(f"{fov}")
             fov_changer = local_player + m_iDefaultFOV
             pm.write_int(fov_changer, fov)
@@ -498,8 +491,9 @@ class MainWindow(QMainWindow):
     def update_chams(self):
         print(self.chams_enabled)
         if self.chams_enabled:
+            local_player = pm.read_uint(client + dwLocalPlayer)
             localTeam = pm.read_int(local_player + m_iTeamNum)
-            for i in range(0, 64):
+            for i in range(0, 32):
                 entity = pm.read_uint(client + dwEntityList + i * 0x10)
                 if entity:
                     entityTeam = pm.read_uint(entity + m_iTeamNum)
@@ -810,7 +804,7 @@ def run():
     global client
     global engine
     global engine_pointer
-    global local_player
+    global game_state
     app = QApplication(["matplotlib"])
     try:
         pm = pymem.Pymem("csgo.exe")
@@ -820,10 +814,9 @@ def run():
         client = pymem.process.module_from_name(pm.process_handle, "client.dll").lpBaseOfDll
         engine = pymem.process.module_from_name(pm.process_handle, "engine.dll").lpBaseOfDll
         engine_pointer = pm.read_uint(engine + dwClientState)
-        local_player = pm.read_uint(client + dwLocalPlayer)
         mainwindow = MainWindow()
-        mainwindow.show()
         update_offsets()
+        mainwindow.show()
         sys.exit(app.exec_())
 
 
