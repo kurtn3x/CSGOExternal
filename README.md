@@ -1,3 +1,5 @@
+Credits: https://github.com/XanOpiat/Python-CSGO-Cheat, learned from that cheat. Aimbot functions are C+P from there.
+****
 ## Requirements:
 #### - Cheat is written and tested in Python 3.10. For full functionality use Python3.10. (Probably works with other 3.x versions as well)
 #### - PyQT5
