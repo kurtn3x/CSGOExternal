@@ -25,7 +25,6 @@ k32 = windll.kernel32
 
 class WindowThread(QThread):
     update_progress = pyqtSignal(str)
-
     def __init__(self):
         super().__init__()
 
@@ -818,15 +817,6 @@ class MainWindow(QMainWindow):
         config["AIMBOT"] = {"enabled": self.aimbot.enabled, "fov": self.aimbot.FOV, "aimspots": self.aimbot.Aimspots,
                             "spotted": self.aimbot.Spotted, "rcs" : self.mainthread.rcs_enabled,
                             "smooth": self.aimbot.Smooth, "smoothvalue": self.aimbot.Smoothvalue}
-
-        if self.mainwindow_ui.enablechamsenemyCheckBox.isChecked():
-            chams_enemy = 1
-        else:
-            chams_enemy = 0
-        if self.mainwindow_ui.enablechamsteamCheckBox.isChecked():
-            chams_team = 1
-        else:
-            chams_team = 0
 
         config["VISUAL"] = {"glow_enabled": self.mainthread.glow_enabled, "glow_team": self.mainthread.glow_team,
                             "glow_enemy": self.mainthread.glow_enemy,
