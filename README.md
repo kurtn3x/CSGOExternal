@@ -12,13 +12,15 @@
 ### <ins> Visuals: </ins>
 #### Glow (Team, Enemy), Chams (Team, Enemy), Colorpicker for glow and chams, Brightmodels (makes models bright), Map Brightness, FOV Changer
 ### <ins> Misc: </ins>
-#### Bunnyhop, Autostrafe, Configloader
+#### Bunnyhop, Autostrafe, Configloader, Autoupdating offsets
 
 ****
-## Known Bugs
+## Known Problems
 #### - Map Brightness, Player FOV changes  have to be made while being in a map. After mapchange the settings have to be made again. Will not be fixed.
-#### - There may be some bugs with the configloader. Its quite cancer because i didnt intent to make one while starting to write this cheat.
+#### - The configloader is quite cancer because i didnt intent to make one while starting to write this cheat.
 #### - Closing the cheat without the Close Button in Misc Settings will keep any changes written to the games memory. This includes Map Brightness, Model Brightness, FOV Changer, Chams and Nohands
+#### - Enabling nohands works fine, but turning it off sometimes doesnt return to your old model.
+#### - The overlay only stays on top of the game when playing fullscreen windowed / windowed.
 
 ****
 ![alt text](https://github.com/kurtn3x/CSGOExternal/blob/main/settings/showcase_screenshots/1.png?raw=true)
