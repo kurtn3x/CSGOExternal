@@ -1,4 +1,7 @@
 ![alt text](https://github.com/kurtn3x/CSGOExternal/blob/main/settings/showcase_screenshots/1.png?raw=true)
+![alt text](https://github.com/kurtn3x/CSGOExternal/blob/main/settings/showcase_screenshots/2.png?raw=true)
+![alt text](https://github.com/kurtn3x/CSGOExternal/blob/main/settings/showcase_screenshots/2.1.png?raw=true)
+![alt text](https://github.com/kurtn3x/CSGOExternal/blob/main/settings/showcase_screenshots/3.png?raw=true)
 ****
 ## AntiCheat notice:
 I take no responsibility if your account gets banned while using this Cheat.
