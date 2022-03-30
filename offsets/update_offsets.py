@@ -21,7 +21,6 @@ def update_offsets():
             line = line.replace("//", "#")
             line = line.strip()
             i += 1
-            print(line)
             f.write(line + "\n")
 
 update_offsets()
