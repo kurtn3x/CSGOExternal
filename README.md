@@ -7,6 +7,11 @@ Credits: https://github.com/XanOpiat/Python-CSGO-Cheat, learned from that cheat.
 #### - PyQT5
 #### - requests
 
+## Installation:
+#### - Download this repo as zip. Download Python 3.10 (recommended)
+#### - go to the download directory and install the dependencies with ' pip install -r requirements.txt ' 
+#### - in the directory type ' python .\main.py '
+
 ****
 ## Features
 ### <ins> Aimbot: </ins>
