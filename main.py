@@ -340,16 +340,18 @@ class MainWindow(QMainWindow):
         try:
             if self.nohands_enabled:
                 self.nohands_enabled = 0
-                tt = 0
                 local_player = pm.read_uint(client + dwLocalPlayer)
-                while tt < 5000:
-                    pm.write_int(local_player + 0x258, 100)
+                tt = 0
+                # force update doesnt work for some reason, have to write the value multiple times.
+                while tt < 6000:
+                    pm.write_int(local_player + 0x258, 500)
                     tt += 1
+
             else:
                 self.nohands_enabled = 1
-                tt = 0
                 local_player = pm.read_uint(client + dwLocalPlayer)
-                while tt < 5000:
+                tt = 0
+                while tt < 6000:
                     pm.write_int(local_player + 0x258, 0)
                     tt += 1
         except:

@@ -451,7 +451,7 @@
      <enum>QTabWidget::Rounded</enum>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>2</number>
     </property>
     <property name="elideMode">
      <enum>Qt::ElideNone</enum>
@@ -471,7 +471,7 @@
        <rect>
         <x>50</x>
         <y>100</y>
-        <width>591</width>
+        <width>571</width>
         <height>21</height>
        </rect>
       </property>
@@ -521,7 +521,7 @@
        <rect>
         <x>20</x>
         <y>10</y>
-        <width>151</width>
+        <width>201</width>
         <height>31</height>
        </rect>
       </property>
@@ -553,8 +553,8 @@
        <rect>
         <x>20</x>
         <y>140</y>
-        <width>101</width>
-        <height>31</height>
+        <width>111</width>
+        <height>41</height>
        </rect>
       </property>
       <property name="text">
@@ -580,7 +580,7 @@
         <x>20</x>
         <y>180</y>
         <width>111</width>
-        <height>31</height>
+        <height>41</height>
        </rect>
       </property>
       <property name="toolTip">
@@ -595,8 +595,8 @@
        <rect>
         <x>20</x>
         <y>220</y>
-        <width>70</width>
-        <height>17</height>
+        <width>81</width>
+        <height>31</height>
        </rect>
       </property>
       <property name="toolTip">
@@ -609,9 +609,9 @@
      <widget class="QLabel" name="label_4">
       <property name="geometry">
        <rect>
-        <x>20</x>
+        <x>10</x>
         <y>90</y>
-        <width>21</width>
+        <width>41</width>
         <height>41</height>
        </rect>
       </property>
@@ -622,9 +622,9 @@
      <widget class="QLabel" name="label_5">
       <property name="geometry">
        <rect>
-        <x>660</x>
+        <x>630</x>
         <y>90</y>
-        <width>31</width>
+        <width>51</width>
         <height>41</height>
        </rect>
       </property>
@@ -638,7 +638,7 @@
         <x>20</x>
         <y>250</y>
         <width>121</width>
-        <height>17</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="toolTip">
@@ -773,8 +773,8 @@
        <rect>
         <x>20</x>
         <y>290</y>
-        <width>21</width>
-        <height>16</height>
+        <width>41</width>
+        <height>21</height>
        </rect>
       </property>
       <property name="text">
@@ -786,8 +786,8 @@
        <rect>
         <x>370</x>
         <y>290</y>
-        <width>31</width>
-        <height>21</height>
+        <width>61</width>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -825,8 +825,8 @@
        <rect>
         <x>130</x>
         <y>60</y>
-        <width>61</width>
-        <height>31</height>
+        <width>81</width>
+        <height>41</height>
        </rect>
       </property>
       <property name="text">
@@ -843,8 +843,8 @@
        <rect>
         <x>20</x>
         <y>20</y>
-        <width>141</width>
-        <height>21</height>
+        <width>161</width>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -856,7 +856,7 @@
        <rect>
         <x>20</x>
         <y>370</y>
-        <width>131</width>
+        <width>141</width>
         <height>41</height>
        </rect>
       </property>
@@ -894,7 +894,7 @@
        <rect>
         <x>220</x>
         <y>380</y>
-        <width>21</width>
+        <width>31</width>
         <height>21</height>
        </rect>
       </property>
@@ -921,7 +921,7 @@
         <x>180</x>
         <y>20</y>
         <width>141</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -934,7 +934,7 @@
         <x>180</x>
         <y>60</y>
         <width>91</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -973,7 +973,7 @@
         <x>180</x>
         <y>140</y>
         <width>141</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -986,7 +986,7 @@
         <x>180</x>
         <y>180</y>
         <width>141</width>
-        <height>21</height>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -1050,7 +1050,7 @@
         <x>270</x>
         <y>11</y>
         <width>291</width>
-        <height>41</height>
+        <height>51</height>
        </rect>
       </property>
       <property name="text">
@@ -1063,7 +1063,7 @@
         <x>270</x>
         <y>46</y>
         <width>301</width>
-        <height>51</height>
+        <height>61</height>
        </rect>
       </property>
       <property name="text">
@@ -1073,10 +1073,10 @@
      <widget class="QPushButton" name="colorpickerGlowTeam">
       <property name="geometry">
        <rect>
-        <x>570</x>
+        <x>560</x>
         <y>20</y>
-        <width>101</width>
-        <height>31</height>
+        <width>111</width>
+        <height>41</height>
        </rect>
       </property>
       <property name="text">
@@ -1086,10 +1086,10 @@
      <widget class="QPushButton" name="colorpickerGlowEnemy">
       <property name="geometry">
        <rect>
-        <x>570</x>
+        <x>560</x>
         <y>60</y>
-        <width>101</width>
-        <height>31</height>
+        <width>111</width>
+        <height>41</height>
        </rect>
       </property>
       <property name="text">
@@ -1099,7 +1099,7 @@
      <widget class="QLabel" name="fovchangerLineEdit">
       <property name="geometry">
        <rect>
-        <x>150</x>
+        <x>160</x>
         <y>380</y>
         <width>31</width>
         <height>21</height>
@@ -1114,8 +1114,8 @@
        <rect>
         <x>270</x>
         <y>130</y>
-        <width>301</width>
-        <height>41</height>
+        <width>291</width>
+        <height>51</height>
        </rect>
       </property>
       <property name="text">
@@ -1128,7 +1128,7 @@
         <x>270</x>
         <y>170</y>
         <width>301</width>
-        <height>41</height>
+        <height>51</height>
        </rect>
       </property>
       <property name="text">
@@ -1138,10 +1138,10 @@
      <widget class="QPushButton" name="colorpickerChamsTeam">
       <property name="geometry">
        <rect>
-        <x>580</x>
-        <y>140</y>
-        <width>101</width>
-        <height>31</height>
+        <x>570</x>
+        <y>130</y>
+        <width>111</width>
+        <height>41</height>
        </rect>
       </property>
       <property name="text">
@@ -1151,10 +1151,10 @@
      <widget class="QPushButton" name="colorpickerChamsEnemy">
       <property name="geometry">
        <rect>
-        <x>580</x>
-        <y>180</y>
-        <width>101</width>
-        <height>31</height>
+        <x>570</x>
+        <y>170</y>
+        <width>111</width>
+        <height>41</height>
        </rect>
       </property>
       <property name="text">
@@ -1166,7 +1166,7 @@
        <rect>
         <x>20</x>
         <y>270</y>
-        <width>131</width>
+        <width>181</width>
         <height>31</height>
        </rect>
       </property>
@@ -1206,8 +1206,8 @@
        <rect>
         <x>30</x>
         <y>30</y>
-        <width>161</width>
-        <height>21</height>
+        <width>241</width>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -1232,8 +1232,8 @@
        <rect>
         <x>30</x>
         <y>110</y>
-        <width>121</width>
-        <height>17</height>
+        <width>141</width>
+        <height>31</height>
        </rect>
       </property>
       <property name="text">
@@ -1274,7 +1274,7 @@
        <rect>
         <x>80</x>
         <y>410</y>
-        <width>151</width>
+        <width>231</width>
         <height>31</height>
        </rect>
       </property>
@@ -1377,8 +1377,8 @@
        <rect>
         <x>30</x>
         <y>160</y>
-        <width>131</width>
-        <height>31</height>
+        <width>151</width>
+        <height>41</height>
        </rect>
       </property>
       <property name="text">
@@ -1388,10 +1388,10 @@
      <widget class="QLabel" name="currentconfigLabel">
       <property name="geometry">
        <rect>
-        <x>190</x>
+        <x>230</x>
         <y>160</y>
-        <width>81</width>
-        <height>31</height>
+        <width>101</width>
+        <height>41</height>
        </rect>
       </property>
       <property name="palette">
@@ -1842,9 +1842,9 @@
      <widget class="QLabel" name="label_14">
       <property name="geometry">
        <rect>
-        <x>400</x>
+        <x>350</x>
         <y>420</y>
-        <width>251</width>
+        <width>341</width>
         <height>31</height>
        </rect>
       </property>
