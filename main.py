@@ -105,26 +105,27 @@ class MainThread(QThread):
         rcs = Vector(0, 0, 0)
         while True:
             time.sleep(0.001)
-            try:
-                local_player = pm.read_uint(client + dwLocalPlayer)
-                local_player_team = pm.read_int(local_player + m_iTeamNum)
-                if self.bunnyhop_enabled and is_pressed("space"):
-                    Bhop(pm, client, local_player)
+            if pm.read_int(engine_pointer + dwClientState_State) == 6:
+                try:
+                    local_player = pm.read_uint(client + dwLocalPlayer)
+                    local_player_team = pm.read_int(local_player + m_iTeamNum)
+                    if self.bunnyhop_enabled and is_pressed("space"):
+                        Bhop(pm, client, local_player)
 
-                    if self.Autostrafe:  # Autostrafe
-                        y_angle = pm.read_float(engine_pointer + dwClientState_ViewAngles + 0x4)
-                        y_angle = AutoStrafe(pm, client, local_player, y_angle, self.OldViewangle)
-                        self.OldViewangle = y_angle
+                        if self.Autostrafe:  # Autostrafe
+                            y_angle = pm.read_float(engine_pointer + dwClientState_ViewAngles + 0x4)
+                            y_angle = AutoStrafe(pm, client, local_player, y_angle, self.OldViewangle)
+                            self.OldViewangle = y_angle
 
-                if self.glow_enabled:
-                    glow(pm, client, self.glow_manager, local_player_team, self.glow_enemy,
-                         self.glow_team, self.glow_color_team, self.glow_color_enemy)
+                    if self.glow_enabled:
+                        glow(pm, client, self.glow_manager, local_player_team, self.glow_enemy,
+                             self.glow_team, self.glow_color_team, self.glow_color_enemy)
 
-                if self.rcs_enabled:
-                    oldpunch = rcse(pm, local_player, engine_pointer, oldpunch, newrcs, punch, rcs)
-            except Exception as e:
-                print(e)
-                continue
+                    if self.rcs_enabled:
+                        oldpunch = rcse(pm, local_player, engine_pointer, oldpunch, newrcs, punch, rcs)
+                except Exception as e:
+                    print(e)
+                    continue
 
 
 
@@ -327,6 +328,7 @@ class MainWindow(QMainWindow):
             self.update_brightchams(self.brightchams_value)
 
     def pick_color(self, x):
+        print("www")
         if x == "glowteam":
             glowteam_colorpicker = QColorDialog()
             glowteam_colorpicker.setWindowTitle("Colorpicker Glow Team")
@@ -356,6 +358,7 @@ class MainWindow(QMainWindow):
             self.update_chams()
 
         elif x == "chamsenemy":
+            print("llll")
             chamsenemy_colorpicker = QColorDialog()
             chamsenemy_colorpicker.setWindowTitle("Colorpicker Chams Enemy")
             self.popups.append(chamsenemy_colorpicker)
@@ -363,6 +366,7 @@ class MainWindow(QMainWindow):
             color = chamsenemy_colorpicker.getColor(parent=self, title="Chams Enemy Color")
             self.mainwindow_ui.chamsenemycolorLabel.setText(f"R: {color.red()} G: {color.green()} B: {color.blue()}")
             self.chams_color_enemy = Color(color.red(), color.green(), color.blue(), 1)
+            print("4")
             self.update_chams()
 
     def toogle_chams(self):
@@ -509,12 +513,15 @@ class MainWindow(QMainWindow):
                             pm.write_uchar(entity + 114, 255)
 
                     if self.mainwindow_ui.enablechamsenemyCheckBox.isChecked():
+                        print("1")
                         if entityTeam != localTeam and entityTeam != 0 and entity != local_player:
+                            print("2")
                             pm.write_uchar(entity + 112, self.chams_color_enemy.R)
                             pm.write_uchar(entity + 113, self.chams_color_enemy.G)
                             pm.write_uchar(entity + 114, self.chams_color_enemy.B)
                     else:
                         if entityTeam != localTeam and entityTeam != 0 and entity != local_player:
+                            print("3")
                             pm.write_uchar(entity + 112, 255)
                             pm.write_uchar(entity + 113, 255)
                             pm.write_uchar(entity + 114, 255)
