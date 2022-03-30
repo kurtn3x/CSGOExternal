@@ -131,15 +131,6 @@ class LocalPlayer:
         # Head, upper body, lower body, legs, arms
         self.IndexToAimspot = {0: 8, 1: 6, 2: 4, 3: 2, 4: 0}
         self.Aimspot = 0
-        self.n = 0
-        self.s = 0
-        self.tmp = 1
-        self.curr_target = None
-        self.curr_distance = None
-        self.first = 1
-        self.dist = Vector(0, 0, 0)
-        self.Aimtime = 1.0
-        self.CurrAimtime = 0
 
     def get(self):
         self.LocalPlayer = self.pm.read_uint(self.client + dwLocalPlayer)
@@ -266,7 +257,6 @@ class LocalPlayer:
                 diff.y = normal.y - self.ViewOffset.y
                 diff.z = normal.z - self.ViewOffset.z
                 normalize_angles(diff)
-                cocktest = sqrt(diff.x*diff.x + diff.y*diff.y + diff.z*diff.z)
                 pitch = self.ViewOffset.x + diff.x / Smoothval
                 yaw = self.ViewOffset.y + diff.y / Smoothval
                 if -89 <= pitch <= 89 and -180 <= yaw <= 180:
