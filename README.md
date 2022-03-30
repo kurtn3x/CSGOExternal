@@ -1,9 +1,9 @@
 ## Features
-### Aimbot: 
+### <ins> Aimbot: </ins>
 #### FOV, only when in sight (Spotted), RCS (shaky if enabled with aimbot), Smooth for Aimbot, Hitboxes (currently only head, upper body, lower body)
-### Visuals: 
+### <ins> Visuals: </ins>
 #### Glow (Team, Enemy), Chams (Team, Enemy), Colorpicker for glow and chams, Brightmodels (makes models bright), Map Brightness, FOV Changer
-### Misc: 
+### <ins> Misc: </ins>
 #### Bunnyhop, Autostrafe, Configloader
 
 ****
