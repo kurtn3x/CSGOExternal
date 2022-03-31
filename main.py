@@ -848,7 +848,8 @@ class MainWindow(QMainWindow):
     def close_cheat(self):
         self.update_brightchams(0)
         self.change_fov_changer_value(90)
-        self.update_nightmode(1)
+        self.nightmode_enabled = 0
+        self.update_nightmode(2)
         tt = 0
         local_player = pm.read_uint(client + dwLocalPlayer)
         while tt < 5000:
@@ -876,12 +877,16 @@ def run():
     except pymem.exception.ProcessNotFound:
         errorbox("Please start csgo first.")
     else:
-        client = pymem.process.module_from_name(pm.process_handle, "client.dll").lpBaseOfDll
-        engine = pymem.process.module_from_name(pm.process_handle, "engine.dll").lpBaseOfDll
-        engine_pointer = pm.read_uint(engine + dwClientState)
-        mainwindow = MainWindow()
-        update_offsets()
-        mainwindow.show()
+        try:
+            client = pymem.process.module_from_name(pm.process_handle, "client.dll").lpBaseOfDll
+            engine = pymem.process.module_from_name(pm.process_handle, "engine.dll").lpBaseOfDll
+            engine_pointer = pm.read_uint(engine + dwClientState)
+            mainwindow = MainWindow()
+            update_offsets()
+            mainwindow.show()
+        except:
+            errorbox("Something went wrong. Please wait for CSGO to fully load up.")
+
 
         sys.exit(app.exec_())
 
