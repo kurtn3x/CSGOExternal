@@ -1,4 +1,7 @@
-Credits: https://github.com/XanOpiat/Python-CSGO-Cheat, learned from that cheat. Aimbot functions are C+P from there.
+Credits: 
+- https://github.com/XanOpiat/Python-CSGO-Cheat, learned from that cheat. Aimbot functions are C+P from there.
+- https://github.com/Snaacky/Diamond Glow is C+P from there.
+- 
 #### - Press Insert to show/hide the game menu
 
 ****
