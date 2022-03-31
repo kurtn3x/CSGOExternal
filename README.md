@@ -33,6 +33,9 @@ Credits: https://github.com/XanOpiat/Python-CSGO-Cheat, learned from that cheat.
 #### - Enabling nohands works fine, but turning it off sometimes doesnt return to your old model.
 #### - The overlay only stays on top of the game when playing fullscreen windowed / windowed.
 
+## Working on:
+#### Triggerbot, better Aimbot (with more aimspots), smoother Glow, external ESP boxes, better performance, better menu 
+
 ****
 ![alt text](https://github.com/kurtn3x/CSGOExternal/blob/main/settings/showcase_screenshots/1.png?raw=true)
 ![alt text](https://github.com/kurtn3x/CSGOExternal/blob/main/settings/showcase_screenshots/2.png?raw=true)
