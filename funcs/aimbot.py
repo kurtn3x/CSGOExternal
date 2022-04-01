@@ -252,10 +252,7 @@ class LocalPlayer:
             yaw = normal.y
 
             if Smooth:
-                diff = Vector(0, 0, 0)
-                diff.x = normal.x - self.ViewOffset.x
-                diff.y = normal.y - self.ViewOffset.y
-                diff.z = normal.z - self.ViewOffset.z
+                diff = Vector(normal.x - self.ViewOffset.x, normal.y - self.ViewOffset.y, normal.z - self.ViewOffset.z)
                 normalize_angles(diff)
                 pitch = self.ViewOffset.x + diff.x / Smoothval
                 yaw = self.ViewOffset.y + diff.y / Smoothval
