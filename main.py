@@ -1193,7 +1193,8 @@ def run():
             update_offsets()
             mainwindow.show()
         except Exception as e:
-            errorbox(e)
+            print(e)
+            errorbox("Something went wrong. Make sure CSGO is fully started.")
             sys.exit(1)
         sys.exit(app.exec_())
 

@@ -4,7 +4,7 @@ from PyQt5.QtCore import *
 
 def errorbox(msg):
     errorbox = qtw.QMessageBox()
-    errorbox.setWindowTitle(Qt.WindowStaysOnTopHint | Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
+    errorbox.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
     errorbox.setIcon(qtw.QMessageBox.Critical)
     errorbox.setText(f"{msg}")
     errorbox.setWindowTitle("ERROR")
