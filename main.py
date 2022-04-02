@@ -182,7 +182,6 @@ class WindowThread(QThread):
                         pm.write_int(fov_changer, self.fovchanger_value)
 
             except Exception as e:
-                print(e)
                 continue
 
 
@@ -272,7 +271,6 @@ class MainThread(QThread):
                     if self.rcs_enabled:
                         oldpunch = rcse(pm, local_player, engine_pointer, oldpunch, newrcs, punch, rcs)
                 except Exception as e:
-                    print(e)
                     continue
 
 
@@ -328,7 +326,6 @@ class AimbotThread(QThread):
                                                  pm.read_int(engine_pointer + dwClientState_MaxPlayer), self.Smooth,
                                                  self.Smoothvalue)
             except Exception as e:
-                print(e)
                 continue
 
 
@@ -825,7 +822,6 @@ class MainWindow(QMainWindow):
                 point = pm.read_int(engine + model_ambient_min - 0x2c)
                 yourval = int(f2b(brightness), 2) ^ point
                 pm.write_int(engine + model_ambient_min, yourval)
-                print(brightness)
             else:
                 brightness = float(0)
                 point = pm.read_int(engine + model_ambient_min - 0x2c)
@@ -1193,7 +1189,6 @@ def run():
             update_offsets()
             mainwindow.show()
         except Exception as e:
-            print(e)
             errorbox("Something went wrong. Make sure CSGO is fully started.")
             sys.exit(1)
         sys.exit(app.exec_())
