@@ -3,13 +3,13 @@ import os.path
 import sys
 import pymem
 import configparser
+from mouse import is_pressed as m_is_pressed
 from ctypes import windll
 from keyboard import is_pressed
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QPixmap
 from ast import literal_eval
-
 from settings.mainwindow import Ui_MainWindow
 from funcs.glow import glow
 from funcs.aimbot import LocalPlayer
@@ -42,7 +42,7 @@ class WindowThread(QThread):
         self.chams_color_team = Color(0, 0, 255, 0)
         self.chams_color_enemy = Color(255, 0, 0, 0)
         self.open_close_keybind = "insert"
-        self.legit_aimbot_keybind = "Ctrl+a+7+l+C"
+        self.legit_aimbot_keybind = "Ctrl+.+^"
         self.glow_team_keybind = "Ctrl+.+^"
         self.glow_enemy_keybind = "Ctrl+.+^"
         self.chams_team_keybind = "Ctrl+.+^"
@@ -199,6 +199,9 @@ class MainThread(QThread):
         self.bunnyhop_enabled = 0
         self.Autostrafe = 0
         self.OldViewangle = 0
+        self.triggerkey_mouse = "Ctrl+.+^"
+        self.triggerkey_keyboard = "capslock"
+        self.trigger_delay = 0
 
         # Put rcs here ?????
         self.rcs_enabled = 0
@@ -250,6 +253,7 @@ class MainThread(QThread):
         newrcs = Vector(0, 0, 0)
         punch = Vector(0, 0, 0)
         rcs = Vector(0, 0, 0)
+        i = 0
         while True:
             # time.sleep(0.001)
             if pm.read_int(engine_pointer + dwClientState_State) == 6:
@@ -270,6 +274,12 @@ class MainThread(QThread):
 
                     if self.rcs_enabled:
                         oldpunch = rcse(pm, local_player, engine_pointer, oldpunch, newrcs, punch, rcs)
+
+                    if is_pressed(self.triggerkey_keyboard) or m_is_pressed(self.triggerkey_mouse):
+                        k32.Sleep(self.trigger_delay)
+                        crosshairid = pm.read_uint(local_player + m_iCrosshairId)
+                        if 0 < crosshairid < 64:
+                            pm.write_int(client + dwForceAttack, 6)
                 except Exception as e:
                     continue
 
@@ -349,6 +359,8 @@ class MainWindow(QMainWindow):
         self.aimbot = AimbotThread()
         self.aimbot.start()
 
+        self.addedkeys = []
+
         # Keybinds
 
         self.WindowManager.show_hide_signal.connect(self.open_close)
@@ -371,12 +383,13 @@ class MainWindow(QMainWindow):
         self.mainwindow_ui.keyteamchamsComboBox.activated[str].connect(self.change_key_chams_team)
         self.mainwindow_ui.keyenemychamsComboBox.activated[str].connect(self.change_key_chams_enemy)
         self.mainwindow_ui.keypanicComboBox.activated[str].connect(self.change_key_panic)
+        self.mainwindow_ui.triggerkeyComboBox.activated[str].connect(self.change_key_triggerbot)
 
         # Aimbot
         self.mainwindow_ui.aimbotCheckBox.stateChanged.connect(self.start_aimbot)
         self.mainwindow_ui.fovSlider.valueChanged.connect(self.update_aimbot_fov)
         self.mainwindow_ui.aimbotapplyButton.clicked.connect(lambda: self.fov_slider_set_value(
-                                                            self.mainwindow_ui.fovLineEdit.text()))
+            self.mainwindow_ui.fovLineEdit.text()))
         self.mainwindow_ui.spottedCheckBox.stateChanged.connect(self.toogle_spotted)
         self.mainwindow_ui.rcsCheckBox.stateChanged.connect(self.toogle_rcs)
         self.mainwindow_ui.headCheckBox.stateChanged.connect(self.aimspot_head)
@@ -397,6 +410,10 @@ class MainWindow(QMainWindow):
         self.mainwindow_ui.colorpickerGlowEnemy.clicked.connect(lambda: self.pick_color("glowenemy"))
         self.glow_color_team = Color(0, 0, 255, 1)
         self.glow_color_enemy = Color(255, 0, 0, 1)
+        self.mainwindow_ui.colorglowteam.setStyleSheet(
+            f"color: rgb({self.glow_color_team.R}, {self.glow_color_team.G}, {self.glow_color_team.B})")
+        self.mainwindow_ui.colorglowenemy.setStyleSheet(
+            f"color: rgb({self.glow_color_enemy.R}, {self.glow_color_enemy.G}, {self.glow_color_enemy.B})")
 
         self.mainwindow_ui.enablechamsCheckBox.stateChanged.connect(self.toogle_chams)
         self.mainwindow_ui.enablechamsteamCheckBox.stateChanged.connect(self.chams_team)
@@ -405,6 +422,10 @@ class MainWindow(QMainWindow):
         self.mainwindow_ui.colorpickerChamsEnemy.clicked.connect(lambda: self.pick_color("chamsenemy"))
         self.chams_color_team = Color(0, 0, 255, 1)
         self.chams_color_enemy = Color(255, 0, 0, 1)
+        self.mainwindow_ui.colorchamsteam.setStyleSheet(
+            f"color: rgb({self.chams_color_team.R}, {self.chams_color_team.G}, {self.chams_color_team.B})")
+        self.mainwindow_ui.colorchamsenemy.setStyleSheet(
+            f"color: rgb({self.chams_color_enemy.R}, {self.chams_color_enemy.G}, {self.chams_color_enemy.B})")
 
         self.brightchams = 0
         self.brightchams_value = 0
@@ -429,10 +450,34 @@ class MainWindow(QMainWindow):
         self.mainwindow_ui.saveconfigButton.clicked.connect(self.save_config)
         self.mainwindow_ui.loadconfigButton.clicked.connect(self.load_config)
         self.mainwindow_ui.updateloadconfigButton.clicked.connect(self.update_loaded_configs)
+        self.mainwindow_ui.triggerbotdelaySlider.valueChanged.connect(self.update_triggerdelay)
 
         self.mainwindow_ui.closeCheatButton.clicked.connect(self.close_cheat)
+        self.mainwindow_ui.addkeyButton.clicked.connect(self.add_key)
 
         self.update_loaded_configs()
+
+    def add_key(self):
+        key = self.mainwindow_ui.addkeylineEdit.text()
+        try:
+            is_pressed(key)
+        except:
+            errorbox("not a valid key")
+        else:
+            self.mainwindow_ui.keyopencloseComboBox.addItem(key)
+            self.mainwindow_ui.keypanicComboBox.addItem(key)
+            self.mainwindow_ui.triggerkeyComboBox.addItem(key)
+            self.mainwindow_ui.keyteamglowComboBox.addItem(key)
+            self.mainwindow_ui.keyenemyglowComboBox.addItem(key)
+            self.mainwindow_ui.keyteamchamsComboBox.addItem(key)
+            self.mainwindow_ui.keyenemychamsComboBox.addItem(key)
+            self.addedkeys.append(key)
+            successfullbox(f"Added key {key}")
+
+
+    def update_triggerdelay(self, val):
+        self.mainthread.trigger_delay = val
+        self.mainwindow_ui.triggerdelayLabel.setText(f"{val}ms")
 
     def change_key_panic(self, key):
         if key == "None":
@@ -471,6 +516,27 @@ class MainWindow(QMainWindow):
         self.mainthread.glow_enemy = 0
         self.mainthread.bunnyhop_enabled = 0
         self.aimbot.enabled = 0
+
+    def change_key_triggerbot(self, key):
+        if key == "None":
+            self.mainthread.triggerkey_mouse = "Ctrl+.+^"
+            self.mainthread.triggerkey_keyboard = "Ctrl+.+^"
+
+        else:
+            if key in ["Middle", "Mouse4", "Mouse5"]:
+                if key == "Mouse4":
+                    key = "x"
+                elif key == "Mouse5":
+                    key = "x2"
+                elif key == "Middle":
+                    key = "middle"
+                self.mainthread.triggerkey_mouse = key
+                self.mainthread.triggerkey_keyboard = "Ctrl+.+^"
+            else:
+                self.mainthread.triggerkey_keyboard = key
+                self.mainthread.triggerkey_mouse = "Ctrl+.+^"
+        print(self.mainthread.triggerkey_mouse)
+        print(self.mainthread.triggerkey_keyboard)
 
 
     def change_key_open_close(self, key):
@@ -590,13 +656,13 @@ class MainWindow(QMainWindow):
             self.mainwindow_ui.enablechamsCheckBox.setChecked(True)
             self.mainwindow_ui.enablechamsenemyCheckBox.setChecked(True)
             self.WindowManager.chams_enabled = 1
-            self.WindowManager.chams_enemy= 1
+            self.WindowManager.chams_enemy = 1
             self.c_e_activated = 1
         else:
             self.mainwindow_ui.enablechamsCheckBox.setChecked(True)
             self.mainwindow_ui.enablechamsenemyCheckBox.setChecked(False)
             self.WindowManager.chams_enabled = 1
-            self.WindowManager.chams_enemy= 0
+            self.WindowManager.chams_enemy = 0
             self.c_e_activated = 0
 
     def toogle_nohands(self):
@@ -634,7 +700,8 @@ class MainWindow(QMainWindow):
                     entity = pm.read_uint(client + dwEntityList + i * 0x10)
                     if entity:
 
-                        entity_id = pm.read_int(pm.read_int(pm.read_int(pm.read_int(entity + 0x8) + 2 * 0x4) + 0x1) + 20)
+                        entity_id = pm.read_int(
+                            pm.read_int(pm.read_int(pm.read_int(entity + 0x8) + 2 * 0x4) + 0x1) + 20)
 
                         if entity_id != 69:
                             continue
@@ -647,7 +714,8 @@ class MainWindow(QMainWindow):
                 for i in range(0, 2048):
                     entity = pm.read_uint(client + dwEntityList + i * 0x10)
                     if entity:
-                        entityclass = pm.read_int(pm.read_int(pm.read_int(pm.read_int(entity + 0x8) + 2 * 0x4) + 0x1) + 20)
+                        entityclass = pm.read_int(
+                            pm.read_int(pm.read_int(pm.read_int(entity + 0x8) + 2 * 0x4) + 0x1) + 20)
                         if entityclass != 69:
                             continue
 
@@ -673,8 +741,12 @@ class MainWindow(QMainWindow):
             self.popups.append(glowteam_colorpicker)
             glowteam_colorpicker.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
             color = glowteam_colorpicker.getColor(parent=self, title="Glow Team Color")
-            self.mainwindow_ui.glowteamcolorLabel.setText(f"R: {color.red()} G: {color.green()} B: {color.blue()}")
-            self.mainthread.update_glow_color_team(Color(color.red(), color.green(), color.blue(), 1))
+            if color.red() != 0 or color.green() != 0 or color.blue() != 0:
+                self.mainwindow_ui.glowteamcolorLabel.setText(f"R: {color.red()} G: {color.green()} B: {color.blue()}")
+                self.mainthread.update_glow_color_team(Color(color.red(), color.green(), color.blue(), 1))
+                self.mainwindow_ui.colorglowteam.setStyleSheet(f"color: rgb({color.red()}, "
+                                                               f"{color.green()}, {color.blue()});")
+
 
         elif x == "glowenemy":
             glowenemy_colorpicker = QColorDialog()
@@ -682,8 +754,11 @@ class MainWindow(QMainWindow):
             self.popups.append(glowenemy_colorpicker)
             glowenemy_colorpicker.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
             color = glowenemy_colorpicker.getColor(parent=self, title="Glow Enemy Color")
-            self.mainwindow_ui.glowenemycolorLabel.setText(f"R: {color.red()} G: {color.green()} B: {color.blue()}")
-            self.mainthread.update_glow_color_enemy(Color(color.red(), color.green(), color.blue(), 1))
+            if color.red() != 0 or color.green() != 0 or color.blue() != 0:
+                self.mainwindow_ui.glowenemycolorLabel.setText(f"R: {color.red()} G: {color.green()} B: {color.blue()}")
+                self.mainthread.update_glow_color_enemy(Color(color.red(), color.green(), color.blue(), 1))
+                self.mainwindow_ui.colorglowenemy.setStyleSheet(f"color: rgb({color.red()},"
+                                                                f" {color.green()}, {color.blue()});")
 
         elif x == "chamsteam":
             chamsteam_colorpicker = QColorDialog()
@@ -691,8 +766,11 @@ class MainWindow(QMainWindow):
             self.popups.append(chamsteam_colorpicker)
             chamsteam_colorpicker.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
             color = chamsteam_colorpicker.getColor(parent=self, title="Chams Team Color")
-            self.mainwindow_ui.chamsteamcolorLabel.setText(f"R: {color.red()} G: {color.green()} B: {color.blue()}")
-            self.WindowManager.update_chams_color_team(Color(color.red(), color.green(), color.blue(), 1))
+            if color.red() != 0 or color.green() != 0 or color.blue() != 0:
+                self.mainwindow_ui.chamsteamcolorLabel.setText(f"R: {color.red()} G: {color.green()} B: {color.blue()}")
+                self.WindowManager.update_chams_color_team(Color(color.red(), color.green(), color.blue(), 1))
+                self.mainwindow_ui.colorchamsteam.setStyleSheet(f"color: rgb({color.red()},"
+                                                                f" {color.green()}, {color.blue()});")
 
         elif x == "chamsenemy":
             chamsenemy_colorpicker = QColorDialog()
@@ -700,8 +778,11 @@ class MainWindow(QMainWindow):
             self.popups.append(chamsenemy_colorpicker)
             chamsenemy_colorpicker.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
             color = chamsenemy_colorpicker.getColor(parent=self, title="Chams Enemy Color")
-            self.mainwindow_ui.chamsenemycolorLabel.setText(f"R: {color.red()} G: {color.green()} B: {color.blue()}")
-            self.WindowManager.update_chams_color_enemy(Color(color.red(), color.green(), color.blue(), 1))
+            if color.red() != 0 or color.green() != 0 or color.blue() != 0:
+                self.mainwindow_ui.chamsenemycolorLabel.setText(f"R: {color.red()} G: {color.green()} B: {color.blue()}")
+                self.WindowManager.update_chams_color_enemy(Color(color.red(), color.green(), color.blue(), 1))
+                self.mainwindow_ui.colorchamsenemy.setStyleSheet(f"color: rgb({color.red()},"
+                                                                 f" {color.green()}, {color.blue()});")
 
     def toogle_chams(self):
         self.WindowManager.toogle_chams()
@@ -795,6 +876,7 @@ class MainWindow(QMainWindow):
         self.mainthread.toogle_bunnyhop()
 
     def fov_slider_set_value(self, val):
+        val = val.replace(",", ".")
         try:
             val = float(val) * 10
             val = int(val)
@@ -873,7 +955,7 @@ class MainWindow(QMainWindow):
             self.mainwindow_ui.aimbotCheckBox.setChecked(False)
             self.aimbot.enabled = 0
 
-        self.mainwindow_ui.fovSlider.setValue(int(self.aimbot.FOV*10))
+        self.mainwindow_ui.fovSlider.setValue(int(self.aimbot.FOV * 10))
         self.mainwindow_ui.fovLineEdit.setText(f"{self.aimbot.FOV}")
         self.aimbot.Aimspots = literal_eval(self.aimbot.Aimspots)
         for i, item in enumerate(self.aimbot.Aimspots):
@@ -884,7 +966,7 @@ class MainWindow(QMainWindow):
                 else:
                     self.mainwindow_ui.headCheckBox.setChecked(False)
                     self.aimbot.Aimspots[0] = 0
-            elif i ==1:
+            elif i == 1:
                 if int(item) == 1:
                     self.mainwindow_ui.upperbodyCheckBox.setChecked(True)
                     self.aimbot.Aimspots[1] = 1
@@ -892,7 +974,7 @@ class MainWindow(QMainWindow):
                     self.mainwindow_ui.upperbodyCheckBox.setChecked(False)
                     self.aimbot.Aimspots[1] = 0
 
-            elif i ==2:
+            elif i == 2:
                 if int(item) == 1:
                     self.mainwindow_ui.lowerbodyCheckBox.setChecked(True)
                     self.aimbot.Aimspots[2] = 1
@@ -900,14 +982,14 @@ class MainWindow(QMainWindow):
                     self.mainwindow_ui.lowerbodyCheckBox.setChecked(False)
                     self.aimbot.Aimspots[2] = 0
 
-            elif i ==3:
+            elif i == 3:
                 if int(item) == 1:
                     # self.mainwindow_ui.legsCheckBox.setChecked(True)
                     self.aimbot.Aimspots[3] = 1
                 else:
                     # self.mainwindow_ui.legsCheckBox.setChecked(False)
                     self.aimbot.Aimspots[3] = 0
-            elif i ==4:
+            elif i == 4:
                 if int(item) == 1:
                     # self.mainwindow_ui.leftarmCheckBox.setChecked(True)
                     self.aimbot.Aimspots[4] = 1
@@ -941,11 +1023,14 @@ class MainWindow(QMainWindow):
 
         self.mainthread.glow_enabled = int(config["VISUAL"]["glow_enabled"])
         self.mainthread.glow_team = int(config["VISUAL"]["glow_team"])
-        self.mainthread.glow_enemy  = int(config["VISUAL"]["glow_enemy"])
+        self.mainthread.glow_enemy = int(config["VISUAL"]["glow_enemy"])
         tm = literal_eval(config["VISUAL"]["glow_team_color"])
         self.mainthread.update_glow_color_team(Color(tm[0], tm[1], tm[2], tm[3]))
+        self.mainwindow_ui.colorglowteam.setStyleSheet(f"color: rgb({tm[0]}, {tm[1]}, {tm[2]})")
         tm = literal_eval(config["VISUAL"]["glow_enemy_color"])
         self.mainthread.update_glow_color_enemy(Color(tm[0], tm[1], tm[2], tm[3]))
+        self.mainwindow_ui.colorglowenemy.setStyleSheet(f"color: rgb({tm[0]}, {tm[1]}, {tm[2]})")
+
         if self.mainthread.glow_enabled:
             self.mainwindow_ui.enableglowCheckBox.setChecked(True)
             self.mainthread.glow_enabled = 1
@@ -967,15 +1052,15 @@ class MainWindow(QMainWindow):
             self.mainwindow_ui.enableglowenemyCheckBox.setChecked(False)
             self.mainthread.glow_enemy = 0
 
-        self.WindowManager.chams_enabled  = int(config["VISUAL"]["chams_enabled"])
+        self.WindowManager.chams_enabled = int(config["VISUAL"]["chams_enabled"])
         if self.WindowManager.chams_enabled:
             self.mainwindow_ui.enablechamsCheckBox.setChecked(True)
             self.WindowManager.chams_enabled = 1
         else:
             self.mainwindow_ui.enablechamsCheckBox.setChecked(False)
-            self.WindowManager.chams_enabled  = 0
+            self.WindowManager.chams_enabled = 0
 
-        self.WindowManager.chams_team  = int(config["VISUAL"]["chams_team"])
+        self.WindowManager.chams_team = int(config["VISUAL"]["chams_team"])
         if self.WindowManager.chams_team:
             self.mainwindow_ui.enablechamsteamCheckBox.setChecked(True)
             self.WindowManager.chams_team = 1
@@ -993,8 +1078,10 @@ class MainWindow(QMainWindow):
 
         tm = literal_eval(config["VISUAL"]["chams_team_color"])
         self.WindowManager.update_chams_color_team(Color(tm[0], tm[1], tm[2], tm[3]))
+        self.mainwindow_ui.colorchamsteam.setStyleSheet(f"color: rgb({tm[0]}, {tm[1]}, {tm[2]})")
         tm = literal_eval(config["VISUAL"]["chams_enemy_color"])
         self.WindowManager.update_chams_color_enemy(Color(tm[0], tm[1], tm[2], tm[3]))
+        self.mainwindow_ui.colorchamsenemy.setStyleSheet(f"color: rgb({tm[0]}, {tm[1]}, {tm[2]})")
 
         self.nightmode_enabled = int(config["VISUAL"]["nightmode_enabled"])
         self.nightmode_value = float(config["VISUAL"]["nightmodevalue"])
@@ -1057,7 +1144,31 @@ class MainWindow(QMainWindow):
             self.nohands_enabled = 0
             self.mainwindow_ui.nohandsCheckBox.setChecked(False)
 
-        keys = ("Insert", "End", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11")
+        triggerdelay = int(config["MISC"]["triggerbot_delay"])
+        self.mainwindow_ui.triggerbotdelaySlider.setValue(triggerdelay)
+        self.mainwindow_ui.triggerdelayLabel.setText(f"{triggerdelay}ms")
+        self.mainthread.trigger_delay = triggerdelay
+
+
+
+        keys = ["Insert", "End", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11"]
+        addedkeys = str(config["KEYBINDS"]["custom_keys"])
+        self.addedkeys = literal_eval(addedkeys)
+        for key in self.addedkeys:
+            self.mainwindow_ui.keyopencloseComboBox.addItem(key)
+            self.mainwindow_ui.keypanicComboBox.addItem(key)
+            self.mainwindow_ui.triggerkeyComboBox.addItem(key)
+            self.mainwindow_ui.keyteamglowComboBox.addItem(key)
+            self.mainwindow_ui.keyenemyglowComboBox.addItem(key)
+            self.mainwindow_ui.keyteamchamsComboBox.addItem(key)
+            self.mainwindow_ui.keyenemychamsComboBox.addItem(key)
+            keys.append(key)
+
+        panic_key = str(config["KEYBINDS"]["keybind_panic_key"])
+        if panic_key in keys:
+            self.WindowManager.open_close_keybind = panic_key
+            self.mainwindow_ui.keyopencloseComboBox.setCurrentText(f"{panic_key}")
+
         open_close_key = str(config["KEYBINDS"]["keybind_menu"])
         if open_close_key in keys:
             self.WindowManager.open_close_keybind = open_close_key
@@ -1103,13 +1214,25 @@ class MainWindow(QMainWindow):
             self.WindowManager.chams_enemy_keybind = chams_enemy_key
             self.mainwindow_ui.keyenemychamsComboBox.setCurrentText("None")
 
+        trigger_key_mouse = str(config["KEYBINDS"]["keybind_trigger_mouse"])
+        trigger_key_keyboard = str(config["KEYBINDS"]["keybind_trigger_keyboard"])
+        if trigger_key_keyboard != "Ctrl+.+^":
+            self.mainwindow_ui.triggerkeyComboBox.setCurrentText(trigger_key_keyboard)
+            self.mainthread.triggerkey_keyboard = trigger_key_keyboard
+        elif trigger_key_mouse != "Ctrl+.+^":
+            if trigger_key_mouse == "x":
+                self.mainwindow_ui.triggerkeyComboBox.setCurrentText("Mouse4")
+            elif trigger_key_mouse == "x2":
+                self.mainwindow_ui.triggerkeyComboBox.setCurrentText("Mouse5")
+            self.mainthread.triggerkey_mouse = trigger_key_mouse
+
         successfullbox("Loaded Settings!")
 
     def save_config(self):
         name = self.mainwindow_ui.saveconfiglineEdit.text()
         config = configparser.ConfigParser()
         config["AIMBOT"] = {"enabled": self.aimbot.enabled, "fov": self.aimbot.FOV, "aimspots": self.aimbot.Aimspots,
-                            "spotted": self.aimbot.Spotted, "rcs" : self.mainthread.rcs_enabled,
+                            "spotted": self.aimbot.Spotted, "rcs": self.mainthread.rcs_enabled,
                             "smooth": self.aimbot.Smooth, "smoothvalue": self.aimbot.Smoothvalue}
 
         config["VISUAL"] = {"glow_enabled": self.mainthread.glow_enabled, "glow_team": self.mainthread.glow_team,
@@ -1134,14 +1257,19 @@ class MainWindow(QMainWindow):
                             "fovchanger_enabled": self.WindowManager.fovchanger_enabled,
                             "fovchanger_value": self.WindowManager.fovchanger_value}
         config["MISC"] = {"bunnyhop_enabled": self.mainthread.bunnyhop_enabled,
+                          "triggerbot_delay": self.mainthread.trigger_delay,
                           "bunnyhop_autostrafe": self.mainthread.Autostrafe, "nohands_enabled": self.nohands_enabled}
 
         config["KEYBINDS"] = {"keybind_menu": self.WindowManager.open_close_keybind,
+                              "keybind_trigger_mouse": self.mainthread.triggerkey_mouse,
+                              "keybind_trigger_keyboard": self.mainthread.triggerkey_keyboard,
+                              "keybind_panic_key" : self.WindowManager.panic_key_keybind,
                               "keybind_legit_aim": self.WindowManager.legit_aimbot_keybind,
                               "keybind_glow_team": self.WindowManager.glow_team_keybind,
                               "keybind_glow_enemy": self.WindowManager.glow_enemy_keybind,
                               "keybind_chams_team": self.WindowManager.chams_team_keybind,
-                              "keybind_chams_enemy": self.WindowManager.chams_enemy_keybind}
+                              "keybind_chams_enemy": self.WindowManager.chams_enemy_keybind,
+                              "custom_keys": self.addedkeys}
         path = os.path.join("configfiles", f"{name}.ini")
         with open(path, 'w') as configfile:
             config.write(configfile)
@@ -1168,7 +1296,6 @@ class MainWindow(QMainWindow):
         sys.exit(1)
 
 
-
 def run():
     global pm
     global client
@@ -1189,6 +1316,7 @@ def run():
             update_offsets()
             mainwindow.show()
         except Exception as e:
+            print(e)
             errorbox("Something went wrong. Make sure CSGO is fully started.")
             sys.exit(1)
         sys.exit(app.exec_())
