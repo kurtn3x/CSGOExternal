@@ -13,6 +13,7 @@ I don't recommend using this cheat on a toaster. Cheat has 10-20% CPU usage on a
 #### - Download this repo as zip. Download Python 3.10 (recommended)
 #### - go to the download directory and install the dependencies with ' pip install -r requirements.txt ' 
 #### - Start the main.py with python. (Either doubleclick and open with Python or command "python .\main.py")
+#### - Run CSGO in windowed or fullscreen windowed setting, otherwise the overlay won't stay on top and you have to tab out to change settings.
 
 ****
 ## Features
@@ -38,6 +39,5 @@ I don't recommend using this cheat on a toaster. Cheat has 10-20% CPU usage on a
 - custom keybinds
 - Autoupdating offsets
 ****
-
 
 ![alt text](https://raw.githubusercontent.com/kurtn3x/CSGOExternal/main/settings/showcase_screenshots/Showcase.png)
