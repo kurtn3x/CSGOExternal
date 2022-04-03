@@ -1,6 +1,12 @@
 Credits: 
-- https://github.com/XanOpiat/Python-CSGO-Cheat, learned from that cheat. Aimbot functions are C+P from there.
+- https://github.com/XanOpiat/Python-CSGO-Cheat, learned from that cheat. A lot is C+P from there.
 - https://github.com/Snaacky/Diamond Glow is C+P from there.
+
+If you encounter any problems feel free to message me on discord: nex1233#9045.
+
+I don't recommend using this cheat on a toaster. Cheat has 10-20% CPU usage on a ryzen 5 2600.
+
+<ins> Is this undetected? Yes, it probably is. Don't use tools to convert this cheat to an .exe, let it run trough python. </ins>
 
 ****
 ## Installation:
@@ -11,11 +17,27 @@ Credits:
 ****
 ## Features
 ### <ins> Aimbot: </ins>
-#### FOV, only when in sight (Spotted), RCS (shaky if enabled with aimbot), Smooth for Aimbot, Hitboxes (currently only head, upper body, lower body)
-### <ins> Visuals: </ins>
-#### Glow (Team, Enemy), Chams (Team, Enemy), Colorpicker for glow and chams, Brightmodels (makes models bright), Map Brightness, FOV Changer
-### <ins> Misc: </ins>
-#### Bunnyhop, Autostrafe, Configloader, Autoupdating offsets
-#### - Press Insert to show/hide the game menu
+- FOV
+- Smooth
+- Hitboxes (Head, Upper Body, Lower Body)
+- Only when in sight
 
+### <ins> Visuals: </ins>
+- Glow (Team, Enemy) with custom colors
+- Chams (Team, Enemy) with custom colors
+- Brighter models
+- Map Brightness (experimental, has to be reset after each map)
+- FOV Changer
+
+### <ins> Misc: </ins>
+- Bunnyhop and Autostrafe
+- Configloader
+- Nohands
+- Triggerbot with custom delay (has some weird delay when using mouse keys, i recommend only using keyboard keys for now)
+- RCS (not recommended with Aimbot)
+- custom keybinds
+- Autoupdating offsets
 ****
+
+
+![alt text](https://raw.githubusercontent.com/kurtn3x/CSGOExternal/main/settings/showcase_screenshots/Showcase.png)
