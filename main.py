@@ -535,8 +535,7 @@ class MainWindow(QMainWindow):
             else:
                 self.mainthread.triggerkey_keyboard = key
                 self.mainthread.triggerkey_mouse = "Ctrl+.+^"
-        print(self.mainthread.triggerkey_mouse)
-        print(self.mainthread.triggerkey_keyboard)
+
 
 
     def change_key_open_close(self, key):

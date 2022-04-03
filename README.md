@@ -6,8 +6,7 @@ Credits:
 ## Installation:
 #### - Download this repo as zip. Download Python 3.10 (recommended)
 #### - go to the download directory and install the dependencies with ' pip install -r requirements.txt ' 
-#### - in the directory type ' python .\main.py '
-#### - Press Insert to show/hide the game menu
+#### - Start the main.py with python. (Either doubleclick and open with Python or command "python .\main.py")
 
 ****
 ## Features
