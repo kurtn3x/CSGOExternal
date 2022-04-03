@@ -11,8 +11,8 @@ I don't recommend using this cheat on a toaster. Cheat has 10-20% CPU usage on a
 ****
 ## Installation:
 #### - Download this repo as zip. Download Python 3.10 (recommended)
-#### - go to the download directory and install the dependencies with ' pip install -r requirements.txt ' 
-#### - Start the main.py with python. (Either doubleclick and open with Python or command "python .\main.py")
+#### - go to the download directory and install the dependencies with ' pip install -r requirements.txt ' or manually install following dependencies: keyboard, mouse, PyQT5, requests, Pymem. If you encounter any errors manually install the dependencies and google the error messages.
+#### - Start the main.py with python. (Either doubleclick and open with Python or command "python main.py") If you encounter any errors start the cheat over the cmd with the command "python main.py" and PM me the error.
 #### - Run CSGO in windowed or fullscreen windowed setting, otherwise the overlay won't stay on top and you have to tab out to change settings.
 
 ****
