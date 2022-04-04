@@ -474,7 +474,6 @@ class MainWindow(QMainWindow):
             self.addedkeys.append(key)
             successfullbox(f"Added key {key}")
 
-
     def update_triggerdelay(self, val):
         self.mainthread.trigger_delay = val
         self.mainwindow_ui.triggerdelayLabel.setText(f"{val}ms")
@@ -535,8 +534,6 @@ class MainWindow(QMainWindow):
             else:
                 self.mainthread.triggerkey_keyboard = key
                 self.mainthread.triggerkey_mouse = "Ctrl+.+^"
-
-
 
     def change_key_open_close(self, key):
         if key == "None":
@@ -778,7 +775,8 @@ class MainWindow(QMainWindow):
             chamsenemy_colorpicker.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
             color = chamsenemy_colorpicker.getColor(parent=self, title="Chams Enemy Color")
             if color.red() != 0 or color.green() != 0 or color.blue() != 0:
-                self.mainwindow_ui.chamsenemycolorLabel.setText(f"R: {color.red()} G: {color.green()} B: {color.blue()}")
+                self.mainwindow_ui.chamsenemycolorLabel.setText(
+                    f"R: {color.red()} G: {color.green()} B: {color.blue()}")
                 self.WindowManager.update_chams_color_enemy(Color(color.red(), color.green(), color.blue(), 1))
                 self.mainwindow_ui.colorchamsenemy.setStyleSheet(f"color: rgb({color.red()},"
                                                                  f" {color.green()}, {color.blue()});")
@@ -1148,8 +1146,6 @@ class MainWindow(QMainWindow):
         self.mainwindow_ui.triggerdelayLabel.setText(f"{triggerdelay}ms")
         self.mainthread.trigger_delay = triggerdelay
 
-
-
         keys = ["Insert", "End", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11"]
         addedkeys = str(config["KEYBINDS"]["custom_keys"])
         self.addedkeys = literal_eval(addedkeys)
@@ -1262,7 +1258,7 @@ class MainWindow(QMainWindow):
         config["KEYBINDS"] = {"keybind_menu": self.WindowManager.open_close_keybind,
                               "keybind_trigger_mouse": self.mainthread.triggerkey_mouse,
                               "keybind_trigger_keyboard": self.mainthread.triggerkey_keyboard,
-                              "keybind_panic_key" : self.WindowManager.panic_key_keybind,
+                              "keybind_panic_key": self.WindowManager.panic_key_keybind,
                               "keybind_legit_aim": self.WindowManager.legit_aimbot_keybind,
                               "keybind_glow_team": self.WindowManager.glow_team_keybind,
                               "keybind_glow_enemy": self.WindowManager.glow_enemy_keybind,
@@ -1312,7 +1308,9 @@ def run():
             engine = pymem.process.module_from_name(pm.process_handle, "engine.dll").lpBaseOfDll
             engine_pointer = pm.read_uint(engine + dwClientState)
             mainwindow = MainWindow()
+            print("Updating offsets...")
             update_offsets()
+            print("Done")
             mainwindow.show()
         except Exception as e:
             print(e)
