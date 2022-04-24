@@ -2,8 +2,6 @@ Credits:
 - https://github.com/XanOpiat/Python-CSGO-Cheat, learned from that cheat. A lot is C+P from there.
 - https://github.com/Snaacky/Diamond Glow is C+P from there.
 
-I don't recommend using this cheat on a toaster. Cheat has 10-20% CPU usage on a ryzen 5 2600.
-
 <ins> Is this undetected? Yes, it probably is. Don't use tools to convert this cheat to an .exe, let it run trough python. </ins>
 
 ****
