@@ -6,7 +6,7 @@ import configparser
 from mouse import is_pressed as m_is_pressed
 from ctypes import windll
 from keyboard import is_pressed
-from PyQt5.QtCore import *
+from PyQt5.QtCore import pyqtSignal, QThread, Qt, QPoint
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QPixmap
 from ast import literal_eval
@@ -253,7 +253,6 @@ class MainThread(QThread):
         newrcs = Vector(0, 0, 0)
         punch = Vector(0, 0, 0)
         rcs = Vector(0, 0, 0)
-        i = 0
         while True:
             # time.sleep(0.001)
             if pm.read_int(engine_pointer + dwClientState_State) == 6:
@@ -384,7 +383,6 @@ class MainWindow(QMainWindow):
         self.mainwindow_ui.keyenemychamsComboBox.activated[str].connect(self.change_key_chams_enemy)
         self.mainwindow_ui.keypanicComboBox.activated[str].connect(self.change_key_panic)
         self.mainwindow_ui.triggerkeyComboBox.activated[str].connect(self.change_key_triggerbot)
-
         # Aimbot
         self.mainwindow_ui.aimbotCheckBox.stateChanged.connect(self.start_aimbot)
         self.mainwindow_ui.fovSlider.valueChanged.connect(self.update_aimbot_fov)
@@ -742,7 +740,6 @@ class MainWindow(QMainWindow):
                 self.mainthread.update_glow_color_team(Color(color.red(), color.green(), color.blue(), 1))
                 self.mainwindow_ui.colorglowteam.setStyleSheet(f"color: rgb({color.red()}, "
                                                                f"{color.green()}, {color.blue()});")
-
 
         elif x == "glowenemy":
             glowenemy_colorpicker = QColorDialog()
@@ -1298,6 +1295,7 @@ def run():
     global engine_pointer
     global game_state
     app = QApplication(["matplotlib"])
+
     try:
         pm = pymem.Pymem("csgo.exe")
     except pymem.exception.ProcessNotFound:
