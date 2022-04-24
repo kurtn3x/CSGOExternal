@@ -7,7 +7,8 @@ Credits:
 ****
 ## Installation:
 #### - Download this repo as zip. Download Python 3.10 (recommended) make sure to add Python as a PATH Variable during Installation.  
-#### Install the dependencies with the following command in your CMD: ' pip install keyboard mouse pyqt5 requests pymem '. 
+#### - Install the dependencies with the following command in your CMD: 
+pip install keyboard mouse pyqt5 requests pymem 
 #### - Start the main.py with python. (Either doubleclick and open with Python or command "python main.py").
 #### - Run CSGO in windowed or fullscreen windowed setting, otherwise the overlay won't stay on top and you have to tab out to change settings.
 #### Tested on Windows 10 and Windows 11 using Python 3.10.
