@@ -6,7 +6,7 @@ Credits:
 
 ****
 ## Installation:
-#### - Download this repo as zip. Download Python 3.10 (recommended) make sure to add Python as a PATH Variable during Installation.  
+#### - Download this repo as zip and unpack it somewhere. Download Python 3.10 (recommended) make sure to add Python as a PATH Variable during Installation.  
 #### - Install the dependencies with the following command in your CMD: 
 pip install keyboard mouse pyqt5 requests pymem 
 #### - Start the main.py with python. (Either doubleclick and open with Python or command "python main.py").
