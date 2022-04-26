@@ -145,4 +145,4 @@ m_yawClassPtr = 0xDBCF48
 model_ambient_min = 0x59003C
 set_abs_angles = 0x1E5570
 set_abs_origin = 0x1E53B0
-# namespace hazedumper
+# namespace hazedumpe
