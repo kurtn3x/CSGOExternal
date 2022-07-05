@@ -11,6 +11,7 @@ Credits:
 pip install keyboard mouse pyqt5 requests pymem 
 #### - Start the main.py with python. (Either doubleclick and open with Python or command "python main.py").
 #### - Run CSGO in windowed or fullscreen windowed setting, otherwise the overlay won't stay on top and you have to tab out to change settings.
+#### - If the Cheat doesn't work try restarting it. If there are new offsets the cheat may still be using the old ones on the first run.
 #### Tested on Windows 10 and Windows 11 using Python 3.10.
 
 ****
